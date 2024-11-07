@@ -1,6 +1,7 @@
 package com.vorono4ka.swf;
 
 import com.vorono4ka.FlatSupercellSWFLoader;
+import com.vorono4ka.math.Rendering;
 import com.vorono4ka.streams.ByteStream;
 import com.vorono4ka.swf.exceptions.*;
 import com.vorono4ka.swf.file.ScFileInfo;
@@ -124,11 +125,11 @@ public class SupercellSWF {
     }
 
     public int getMovieClipCount() {
-        return this.movieClips.size();
+        return this.movieClips != null ? this.movieClips.size() : 0;
     }
 
     public int getTextureCount() {
-        return this.textures.size();
+        return this.textures != null ? this.textures.size() : 0;
     }
 
     public int[] getShapesIds() {
@@ -198,7 +199,15 @@ public class SupercellSWF {
             byte[] decompressedData = unpacked.data();
 
             if (unpacked.version() == 5) {
-                return loadAsFlat(decompressedData);
+                boolean result = loadAsFlat(decompressedData);
+
+                for (ShapeOriginal shape : shapes) {
+                    for (ShapeDrawBitmapCommand command : shape.getCommands()) {
+                        command.setTriangulator(Rendering.TRIANGULATOR_FUNCTION_2);
+                    }
+                }
+
+                return result;
             }
 
             return loadOld(path, isTextureFile, decompressedData);
@@ -285,6 +294,12 @@ public class SupercellSWF {
             for (Export export : exports) {
                 MovieClipOriginal movieClip = this.getOriginalMovieClip(export.id(), export.name());
                 movieClip.setExportName(export.name());
+            }
+
+            for (ShapeOriginal shape : shapes) {
+                for (ShapeDrawBitmapCommand command : shape.getCommands()) {
+                    command.setTriangulator(Rendering.TRIANGULATOR_FUNCTION_1);
+                }
             }
 
             return true;

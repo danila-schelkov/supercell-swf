@@ -6,13 +6,16 @@ import com.supercell.swf.FBShapePoint;
 import com.vorono4ka.streams.ByteStream;
 import com.vorono4ka.swf.Tag;
 
+import java.util.function.IntFunction;
+
 public class ShapeDrawBitmapCommand {
     private transient Tag tag;
 
-    private int unk;
     private int textureIndex;
-    private int vertexCount;
     private ShapePoint[] shapePoints;
+
+    private IntFunction<int[]> triangulator;
+    private int[] indices;
 
     public ShapeDrawBitmapCommand() {
     }
@@ -20,10 +23,10 @@ public class ShapeDrawBitmapCommand {
     public ShapeDrawBitmapCommand(FBShapeDrawBitmapCommand fb, FBResources resources) {
         tag = Tag.SHAPE_DRAW_BITMAP_COMMAND;
 
-        unk = fb.unknown0();
+//        unk = fb.unknown0();
         textureIndex = fb.textureIndex();
 
-        vertexCount = fb.pointCount();
+        int vertexCount = fb.pointCount();
         shapePoints = new ShapePoint[vertexCount];
         for (int i = 0; i < vertexCount; i++) {
             FBShapePoint sbPoint = resources.shapePoints(fb.startingPointIndex() + i);
@@ -36,23 +39,23 @@ public class ShapeDrawBitmapCommand {
 
         this.textureIndex = stream.readUnsignedChar();
 
-        this.vertexCount = 4;
+        int vertexCount = 4;
         if (tag != Tag.SHAPE_DRAW_BITMAP_COMMAND) {
-            this.vertexCount = stream.readUnsignedChar();
+            vertexCount = stream.readUnsignedChar();
         }
 
-        this.shapePoints = new ShapePoint[this.vertexCount];
+        this.shapePoints = new ShapePoint[vertexCount];
         for (int i = 0; i < this.shapePoints.length; i++) {
             this.shapePoints[i] = new ShapePoint();
         }
 
-        for (int i = 0; i < this.vertexCount; i++) {
+        for (int i = 0; i < vertexCount; i++) {
             ShapePoint shapePoint = this.shapePoints[i];
             shapePoint.setX(stream.readTwip());
             shapePoint.setY(stream.readTwip());
         }
 
-        for (int i = 0; i < this.vertexCount; i++) {
+        for (int i = 0; i < vertexCount; i++) {
             ShapePoint shapePoint = this.shapePoints[i];
             shapePoint.setU(stream.readShort());
             shapePoint.setV(stream.readShort());
@@ -63,7 +66,7 @@ public class ShapeDrawBitmapCommand {
         stream.writeUnsignedChar(this.textureIndex);
 
         if (this.tag != Tag.SHAPE_DRAW_BITMAP_COMMAND) {
-            stream.writeUnsignedChar(this.vertexCount);
+            stream.writeUnsignedChar(this.shapePoints.length);
         }
 
         for (ShapePoint point : this.shapePoints) {
@@ -125,5 +128,21 @@ public class ShapeDrawBitmapCommand {
 
     public int getVertexCount() {
         return shapePoints.length;
+    }
+
+    public int getTriangleCount() {
+        return this.getVertexCount() - 2;
+    }
+
+    public void setTriangulator(IntFunction<int[]> triangulator) {
+        this.triangulator = triangulator;
+    }
+
+    public int[] getIndices() {
+        if (indices != null) {
+            return indices;
+        }
+
+        return indices = triangulator.apply(getTriangleCount());
     }
 }
