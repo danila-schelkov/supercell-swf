@@ -1,0 +1,24 @@
+include "movie_clips.fbs";
+include "shapes.fbs";
+include "matrix_bank.fbs";
+
+namespace com.supercell.swf;
+
+struct FBRect {
+    left: float;
+    top: float;
+    right: float;
+    bottom: float;
+}
+
+table FBResources {
+    strings:[string];
+    unk2:[uint32];
+    unk3:[uint32];
+    scaling_grids:[FBRect];
+    movie_clip_frame_elements:[FBMovieClipFrameElement];
+    shape_points:[FBShapePoint];
+    matrix_banks:[FBMatrixBank];
+}
+
+root_type FBResources;

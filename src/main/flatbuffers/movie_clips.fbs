@@ -1,0 +1,33 @@
+namespace com.supercell.swf;
+
+struct FBMovieClipFrameElement {
+    child_index:ushort;
+    matrix_index:ushort;
+    color_transform_index:ushort;
+}
+
+struct FBMovieClipFrame {
+    frame_element_count:int32;
+    label_ref_id:int32;
+}
+
+table FBMovieClip {
+    id:uint16;
+    export_name_ref_id:int32;
+    fps:ubyte;
+    frame_count:uint16;
+    property:ubyte;
+    child_ids:[uint16];
+    child_name_ref_ids:[int32];
+    child_blends:[uint8];
+    frames:[FBMovieClipFrame];
+    frame_element_offset:int32;
+    matrix_bank_index:uint16;
+    scaling_grid_index:int32 = -1;
+}
+
+table FBMovieClips {
+    clips:[FBMovieClip];
+}
+
+root_type FBMovieClips;

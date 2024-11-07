@@ -1,0 +1,25 @@
+namespace com.supercell.swf;
+
+struct FBMatrix2x3 {
+    a:float;
+    b:float;
+    c:float;
+    d:float;
+    x:float;
+    y:float;
+}
+
+struct FBColorTransform {
+    r:ubyte;
+    g:ubyte;
+    b:ubyte;
+    a:ubyte;
+    ra:ubyte;
+    ga:ubyte;
+    ba:ubyte;
+}
+
+table FBMatrixBank {
+    matrices:[FBMatrix2x3];
+    color_transforms:[FBColorTransform];
+}

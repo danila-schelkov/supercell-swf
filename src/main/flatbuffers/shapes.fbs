@@ -1,0 +1,26 @@
+namespace com.supercell.swf;
+
+struct FBShapePoint {
+    x:float;
+    y:float;
+    u:ushort;
+    v:ushort;
+}
+
+struct FBShapeDrawBitmapCommand {
+    unknown0: int32;
+    texture_index: int32;
+    point_count: int32;
+    starting_point_index: int32;
+}
+
+table FBShape {
+    id:uint16;
+    commands:[FBShapeDrawBitmapCommand];
+}
+
+table FBShapes {
+    shapes:[FBShape];
+}
+
+root_type FBShapes;

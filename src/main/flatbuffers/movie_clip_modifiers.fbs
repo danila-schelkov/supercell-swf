@@ -1,0 +1,12 @@
+namespace com.supercell.swf;
+
+struct FBMovieClipModifier {
+    id:uint16;
+    tag:uint16;
+}
+
+table FBMovieClipModifiers {
+    modifiers:[FBMovieClipModifier];
+}
+
+root_type FBMovieClipModifiers;

@@ -1,0 +1,26 @@
+namespace com.supercell.swf;
+
+struct FBTextField {
+    id:uint16;
+    unused0:uint16;
+    font_name_ref_id:int32;
+    left:int16;
+    top:int16;
+    right:int16;
+    bottom:int16;
+    color:int32;
+    outline_color:int32;
+    default_text_ref_id:int32;
+    another_text_ref_id:int32;
+    styles:ubyte;
+    align:ubyte;
+    font_size:ubyte;
+    unused1:ubyte;
+    unused2:int32;
+}
+
+table FBTextFields {
+    text_fields:[FBTextField];
+}
+
+root_type FBTextFields;
