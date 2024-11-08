@@ -267,7 +267,7 @@ public class SupercellSWF {
 
         this.exports = new ArrayList<>(exportCount);
         for (int i = 0; i < exportCount; i++) {
-            exports.add(new Export(exportIds[i], exportNames[i]));
+            exports.add(new Export(exportIds[i] & 0xFFFF, exportNames[i]));
         }
 
         this.shapes = new ArrayList<>(shapeCount);
@@ -365,7 +365,7 @@ public class SupercellSWF {
                 }
                 case TEXTURE, TEXTURE_2, TEXTURE_3, TEXTURE_4, TEXTURE_5, TEXTURE_6,
                      TEXTURE_7, TEXTURE_8, KHRONOS_TEXTURE,
-                     COMPRESSED_KHRONOS_TEXTURE -> {
+                     TEXTURE_FILE_REFERENCE -> {
                     if (loadedTextures >= this.textures.size()) {
                         throw new TooManyObjectsException("Trying to load too many textures from ");
                     }

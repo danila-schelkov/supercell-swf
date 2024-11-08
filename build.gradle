@@ -9,6 +9,7 @@ version = project.version
 
 repositories {
     mavenCentral()
+    mavenLocal()
     maven {
         url = uri("https://maven.pkg.github.com/danila-schelkov/*")
         credentials {

@@ -66,7 +66,7 @@ public enum Tag {
     /**
      * Contains a filename of the compressed with zstd texture "zktx"
      */
-    COMPRESSED_KHRONOS_TEXTURE,
+    TEXTURE_FILE_REFERENCE,
     UNKNOWN_48,  // probably, custom properties for movie clips
     /**
      * Has custom properties
@@ -86,7 +86,7 @@ public enum Tag {
         return switch (this) {
             case TEXTURE, TEXTURE_4, TEXTURE_5, TEXTURE_6 -> 1;
             case TEXTURE_2, TEXTURE_3, TEXTURE_7 -> 2;
-            case TEXTURE_8, KHRONOS_TEXTURE, COMPRESSED_KHRONOS_TEXTURE -> 0;
+            case TEXTURE_8, KHRONOS_TEXTURE, TEXTURE_FILE_REFERENCE -> 0;
             default ->
                 throw new IllegalStateException("Unsupported texture tag: " + this);
         };

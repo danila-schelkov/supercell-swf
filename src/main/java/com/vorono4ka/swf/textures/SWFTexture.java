@@ -4,8 +4,8 @@ import com.supercell.swf.FBResources;
 import com.supercell.swf.FBTexture;
 import com.vorono4ka.streams.ByteStream;
 import com.vorono4ka.swf.Savable;
-import com.vorono4ka.swf.TextureInfo;
 import com.vorono4ka.swf.Tag;
+import com.vorono4ka.swf.TextureInfo;
 import com.vorono4ka.swf.exceptions.LoadingFaultException;
 import com.vorono4ka.utilities.BufferUtils;
 
@@ -14,7 +14,6 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 import java.util.Arrays;
-import java.util.Objects;
 
 public class SWFTexture implements Savable {
     public static final int TILE_SIZE = 32;
@@ -69,7 +68,7 @@ public class SWFTexture implements Savable {
             assert khronosTextureLength > 0;
         }
 
-        if (tag == Tag.COMPRESSED_KHRONOS_TEXTURE) {
+        if (tag == Tag.TEXTURE_FILE_REFERENCE) {
             textureFilename = stream.readAscii();
             if (textureFilename == null) {
                 throw new LoadingFaultException("Compressed texture filename cannot be null.");
@@ -86,9 +85,9 @@ public class SWFTexture implements Savable {
 
         textureInfo = TextureInfo.getTextureInfoByType(type);
 
-        if (Objects.requireNonNull(tag) == Tag.KHRONOS_TEXTURE) {
+        if (tag == Tag.KHRONOS_TEXTURE) {
             ktxData = stream.readByteArray(khronosTextureLength);
-        } else {
+        } else if (tag != Tag.TEXTURE_FILE_REFERENCE) {
             pixels = loadTexture(stream, width, height, textureInfo.pixelBytes(), hasInterlacing(tag));
         }
     }
