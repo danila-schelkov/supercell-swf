@@ -7,54 +7,48 @@ import com.vorono4ka.math.MathHelper;
 import com.vorono4ka.math.Rect;
 import com.vorono4ka.streams.ByteStream;
 import com.vorono4ka.swf.DisplayObjectOriginal;
+import com.vorono4ka.swf.Savable;
 import com.vorono4ka.swf.SupercellSWF;
 import com.vorono4ka.swf.Tag;
 import com.vorono4ka.swf.exceptions.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 public class MovieClipOriginal extends DisplayObjectOriginal {
     private static final Logger LOGGER = LoggerFactory.getLogger(MovieClipOriginal.class);
 
-    private transient Tag tag;
+    private Tag tag;
 
     private int id;
-
     private String exportName;
-
     private byte fps;
-    private boolean customPropertyBoolean;
-    private short[] childIds = new short[0];
-    private byte[] childBlends = new byte[0];
-    private String[] childNames = new String[0];
+    /**
+     * By default, true in the game.
+     */
+    private boolean customPropertyBoolean = true;
+    private List<MovieClipChild> children = new ArrayList<>();
     private List<MovieClipFrame> frames;
     private short matrixBankIndex;
     private Rect scalingGrid;
 
-    private DisplayObjectOriginal[] children;
+    private DisplayObjectOriginal[] timelineChildren;
 
     public MovieClipOriginal() {
     }
 
     public MovieClipOriginal(FBMovieClip fb, FBResources resources) {
-        tag = Tag.MOVIE_CLIP_6;
         id = fb.id();
         exportName = resources.strings(fb.exportNameRefId());
         fps = (byte) fb.fps();
         customPropertyBoolean = (fb.property() != 0);
-        childIds = new short[fb.childIdsLength()];
-        for (int i = 0; i < childIds.length; i++) {
-            childIds[i] = (short) fb.childIds(i);
-        }
-        childNames = new String[fb.childNameRefIdsLength()];
-        for (int i = 0; i < childNames.length; i++) {
-            childNames[i] = resources.strings(fb.childNameRefIds(i));
-        }
-        childBlends = new byte[fb.childBlendsLength()];
-        for (int i = 0; i < childBlends.length; i++) {
-            childBlends[i] = (byte) fb.childBlends(i);
+        children = new ArrayList<>(fb.childIdsLength());
+        for (int i = 0; i < fb.childIdsLength(); i++) {
+            children.add(new MovieClipChild(fb.childIds(i), (byte) fb.childBlends(i), fb.childNameRefIdsLength() > 0 ? resources.strings(fb.childNameRefIds(i)) : null));
         }
         frames = new ArrayList<>(fb.framesLength());
         int frameElementOffset = fb.frameElementOffset() / 3;
@@ -69,6 +63,8 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         if (scalingGridIndex != -1) {
             scalingGrid = new Rect(resources.scalingGrids(scalingGridIndex));
         }
+
+        tag = determineTag();
     }
 
     public int load(ByteStream stream, Tag tag, String filename) throws LoadingFaultException, UnsupportedCustomPropertyException {
@@ -116,19 +112,23 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
             }
         }
 
-        int childrenCount = stream.readShort();
-        this.childIds = stream.readShortArray(childrenCount);
+        int childCount = stream.readShort();
+        short[] childIds = stream.readShortArray(childCount);
 
+        byte[] childBlends;
         if (tag.hasBlendData()) {
-            this.childBlends = stream.readByteArray(childrenCount);
+            childBlends = stream.readByteArray(childCount);
         } else {
-            this.childBlends = new byte[childrenCount];
-            Arrays.fill(this.childBlends, (byte) 0);
+            childBlends = new byte[childCount];
         }
 
-        this.childNames = new String[childrenCount];
-        for (int i = 0; i < childrenCount; i++) {
-            this.childNames[i] = stream.readAscii();
+        String[] childNames = new String[childCount];
+        for (int i = 0; i < childCount; i++) {
+            childNames[i] = stream.readAscii();
+        }
+
+        for (int i = 0; i < childCount; i++) {
+            children.add(new MovieClipChild(childIds[i], childBlends[i], childNames[i]));
         }
 
         int loadedCommands = 0;
@@ -157,9 +157,9 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
                             throw new IllegalStateException("Frame elements cannot be null.");
                         }
 
-                        MovieClipFrameElement[] elements = new MovieClipFrameElement[elementCount];
+                        List<MovieClipFrameElement> elements = new ArrayList<>(elementCount);
                         for (int i = 0; i < elementCount; i++) {
-                            elements[i] = new MovieClipFrameElement(frameElements[usedElements * 3] & 0xFFFF, frameElements[usedElements * 3 + 1] & 0xFFFF, frameElements[usedElements * 3 + 2] & 0xFFFF);
+                            elements.add(new MovieClipFrameElement(frameElements[usedElements * 3] & 0xFFFF, frameElements[usedElements * 3 + 1] & 0xFFFF, frameElements[usedElements * 3 + 2] & 0xFFFF));
 
                             usedElements++;
                         }
@@ -201,10 +201,20 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
 
         stream.writeShort(this.frames.size());
 
+        if (tag.hasCustomProperties()) {
+            stream.writeUnsignedChar(1);  // custom property count
+            {
+                stream.writeUnsignedChar(0);  // custom property type
+                {  // custom property 0 data
+                    stream.writeBoolean(this.customPropertyBoolean);
+                }
+            }
+        }
+
         if (tag != Tag.MOVIE_CLIP && tag != Tag.MOVIE_CLIP_4) {
             List<MovieClipFrameElement> frameElements = new ArrayList<>();
             for (MovieClipFrame frame : this.frames) {
-                Collections.addAll(frameElements, frame.getElements());
+                frameElements.addAll(frame.getElements());
             }
 
             stream.writeInt(frameElements.size());
@@ -215,59 +225,49 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
             }
         }
 
-        stream.writeShort(this.childIds.length);
-        for (short id : this.childIds) {
-            stream.writeShort(id);
+        stream.writeShort(this.children.size());
+        for (MovieClipChild child : this.children) {
+            stream.writeShort(child.id());
         }
 
-        if (this.tag == Tag.MOVIE_CLIP_3 || this.tag == Tag.MOVIE_CLIP_5) {
-            for (byte blend : this.childBlends) {
-                stream.writeUnsignedChar(blend);
+        if (this.tag.hasBlendData()) {
+            for (MovieClipChild child : this.children) {
+                stream.writeUnsignedChar(child.blend());
             }
         }
 
-        for (String name : this.childNames) {
-            stream.writeAscii(name);
+        for (MovieClipChild child : this.children) {
+            stream.writeAscii(child.name());
         }
 
-        for (MovieClipFrame frame : this.frames) {
-            stream.writeBlock(Tag.MOVIE_CLIP_FRAME_2, frame::save);
+        List<Savable> savableObjects = getSavableObjects();
+
+        for (Savable savable : savableObjects) {
+            stream.writeSavable(savable);
         }
 
-        if (this.scalingGrid != null) {
-            stream.writeBlock(Tag.SCALING_GRID, blockStream -> {
-                blockStream.writeTwip(this.scalingGrid.getLeft());
-                blockStream.writeTwip(this.scalingGrid.getTop());
-                blockStream.writeTwip(this.scalingGrid.getWidth());
-                blockStream.writeTwip(this.scalingGrid.getHeight());
-            });
-        }
-
-        if (this.matrixBankIndex != 0) {
-            stream.writeBlock(Tag.MATRIX_BANK_INDEX, blockStream -> blockStream.writeUnsignedChar(this.matrixBankIndex));
-        }
-
-        stream.writeBlock(Tag.EOF, ignored -> {
-        });
-    }
-
-    public void createTimelineChildren(SupercellSWF swf) throws UnableToFindObjectException {
-        if (this.children == null) {
-            this.children = new DisplayObjectOriginal[this.childIds.length];
-            for (int i = 0; i < this.childIds.length; i++) {
-                this.children[i] = swf.getOriginalDisplayObject(this.childIds[i] & 0xFFFF, this.exportName);
-            }
-        }
-    }
-
-    @Override
-    public int getId() {
-        return this.id;
+        stream.writeBlock(Tag.EOF, null);
     }
 
     @Override
     public Tag getTag() {
         return tag;
+    }
+
+    public DisplayObjectOriginal[] createTimelineChildren(SupercellSWF swf) throws UnableToFindObjectException {
+        if (this.timelineChildren == null) {
+            this.timelineChildren = new DisplayObjectOriginal[this.children.size()];
+            for (int i = 0; i < this.children.size(); i++) {
+                this.timelineChildren[i] = swf.getOriginalDisplayObject(this.children.get(i).id() & 0xFFFF, this.exportName);
+            }
+        }
+
+        return this.timelineChildren;
+    }
+
+    @Override
+    public int getId() {
+        return this.id;
     }
 
     public int getFps() {
@@ -278,20 +278,8 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         return frames;
     }
 
-    public int getChildCount() {
-        return childIds != null ? childIds.length : 0;
-    }
-
-    public byte[] getChildBlends() {
-        return childBlends;
-    }
-
-    public short[] getChildIds() {
-        return childIds;
-    }
-
-    public String[] getChildNames() {
-        return childNames;
+    public List<MovieClipChild> getChildren() {
+        return children;
     }
 
     public Rect getScalingGrid() {
@@ -302,8 +290,8 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         return matrixBankIndex;
     }
 
-    public DisplayObjectOriginal[] getChildren() {
-        return children;
+    public DisplayObjectOriginal[] getTimelineChildren() {
+        return timelineChildren;
     }
 
     public String getExportName() {
@@ -316,6 +304,66 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
 
     @Override
     public String toString() {
-        return "MovieClipOriginal{" + "tag=" + tag + ", id=" + id + ", exportName='" + exportName + '\'' + ", fps=" + fps + ", customPropertyBoolean=" + customPropertyBoolean + ", childIds=" + Arrays.toString(childIds) + ", childBlends=" + Arrays.toString(childBlends) + ", childNames=" + Arrays.toString(childNames) + ", frames=" + frames + ", matrixBankIndex=" + matrixBankIndex + ", scalingGrid=" + scalingGrid + ", children=" + Arrays.toString(children) + '}';
+        return "MovieClipOriginal{" + "tag=" + tag + ", id=" + id + ", exportName='" + exportName + '\'' + ", fps=" + fps + ", customPropertyBoolean=" + customPropertyBoolean + ", children=" + children + ", frames=" + frames + ", matrixBankIndex=" + matrixBankIndex + ", scalingGrid=" + scalingGrid + ", children=" + Arrays.toString(timelineChildren) + '}';
+    }
+
+    private Tag determineTag() {
+        if (!customPropertyBoolean) {
+            return Tag.MOVIE_CLIP_6;
+        }
+
+        if (!children.isEmpty()) {
+            boolean hasNotZero = false;
+            for (MovieClipChild child : children) {
+                if (child.blend() != 0) {
+                    hasNotZero = true;
+                    break;
+                }
+            }
+
+            if (hasNotZero) {
+                return Tag.MOVIE_CLIP_5;
+            }
+        }
+
+        return Tag.MOVIE_CLIP_2;
+    }
+
+    private List<Savable> getSavableObjects() {
+        List<Savable> savableObjects = new ArrayList<>(this.frames);
+
+        if (this.scalingGrid != null) {
+            Savable scalingGridObject = new Savable() {
+                @Override
+                public void save(ByteStream stream) {
+                    stream.writeTwip(scalingGrid.getLeft());
+                    stream.writeTwip(scalingGrid.getTop());
+                    stream.writeTwip(scalingGrid.getWidth());
+                    stream.writeTwip(scalingGrid.getHeight());
+                }
+
+                @Override
+                public Tag getTag() {
+                    return Tag.SCALING_GRID;
+                }
+            };
+            savableObjects.add(scalingGridObject);
+        }
+
+        if (this.matrixBankIndex != 0) {
+            Savable matrixBankIndexObject = new Savable() {
+                @Override
+                public void save(ByteStream stream) {
+                    stream.writeUnsignedChar(matrixBankIndex);
+                }
+
+                @Override
+                public Tag getTag() {
+                    return Tag.MATRIX_BANK_INDEX;
+                }
+            };
+            savableObjects.add(matrixBankIndexObject);
+        }
+        return savableObjects;
     }
 }

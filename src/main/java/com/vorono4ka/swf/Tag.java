@@ -3,8 +3,19 @@ package com.vorono4ka.swf;
 public enum Tag {
     EOF,
     TEXTURE,
+    /**
+     * This type of shape doesn't have point count, so it's calculated as {@code 4 * commandCount}.
+     * Can contain only commands of type SHAPE_DRAW_BITMAP_COMMAND. <br>
+     * <br>
+     * It isn't supported since SC2 appeared.
+     */
     SHAPE,
     MOVIE_CLIP,
+    /**
+     * This command contains quad points. Only 4 points allowed. <br>
+     * <br>
+     * It isn't supported since SC2 appeared.
+     */
     SHAPE_DRAW_BITMAP_COMMAND,
     MOVIE_CLIP_FRAME,
     SHAPE_DRAW_COLOR_FILL_COMMAND,
@@ -18,7 +29,15 @@ public enum Tag {
     MOVIE_CLIP_4,
     TEXT_FIELD_2,
     TEXTURE_2,  // TEXTURE with mipmaps
+    /**
+     * This type of command had broken UV coordinates (division and multiplication was mixed up). <br>
+     * <br>
+     * It isn't supported since SC2 appeared.
+     */
     SHAPE_DRAW_BITMAP_COMMAND_2,
+    /**
+     * This type of shape has point count in the structure.
+     */
     SHAPE_2,
     TEXTURE_3,
     TEXT_FIELD_3,

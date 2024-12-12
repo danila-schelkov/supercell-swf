@@ -10,7 +10,7 @@ import com.vorono4ka.swf.Tag;
 import java.util.function.Function;
 
 public class TextFieldOriginal extends DisplayObjectOriginal {
-    private transient Tag tag;
+    private Tag tag;
 
     private int id;
 
@@ -42,7 +42,6 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
     }
 
     public TextFieldOriginal(FBTextField fb, FBResources resources) {
-        tag = Tag.TEXT_FIELD_9;
         id = fb.id();
         fontName = resources.strings(fb.fontNameRefId());
         bounds = new ShortRect(fb.left(), fb.top(), fb.right(), fb.bottom());
@@ -53,6 +52,8 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
         align = (byte) fb.align();
         fontSize = (byte) fb.fontSize();
         setStyles((byte) fb.styles());
+
+        this.tag = determineTag();
     }
 
     public void setStyles(byte styles) {
@@ -213,5 +214,44 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
 
     public void getBendAngle(float bendAngle) {
         this.bendAngle = (short) (bendAngle * Short.MAX_VALUE / 360f);
+    }
+
+    private Tag determineTag() {
+        Tag tag = Tag.TEXT_FIELD;
+        if (this.useDeviceFont) {
+            tag = Tag.TEXT_FIELD_2;
+        }
+
+        if (!this.unkBoolean) {
+            if (this.outlineColor != 0) {
+                return Tag.TEXT_FIELD_5;
+            }
+
+            return tag;
+        }
+
+        tag = Tag.TEXT_FIELD_3;
+
+        if (this.outlineColor != 0) {
+            tag = Tag.TEXT_FIELD_4;
+        }
+
+        if (this.unk32 != 0) {
+            tag = Tag.TEXT_FIELD_6;
+        }
+
+        if (this.bendAngle != 0) {
+            tag = Tag.TEXT_FIELD_7;
+        }
+
+        if (this.autoAdjustFontSize) {
+            tag = Tag.TEXT_FIELD_8;
+        }
+
+        if (this.anotherText != null) {
+            tag = Tag.TEXT_FIELD_9;
+        }
+
+        return tag;
     }
 }

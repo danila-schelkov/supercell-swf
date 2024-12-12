@@ -3,61 +3,84 @@ package com.vorono4ka.swf.movieclips;
 import com.supercell.swf.FBMovieClipFrame;
 import com.supercell.swf.FBResources;
 import com.vorono4ka.streams.ByteStream;
+import com.vorono4ka.swf.Savable;
 import com.vorono4ka.swf.Tag;
 
-public class MovieClipFrame {
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class MovieClipFrame implements Savable {
+    private Tag tag;
+
     private int elementCount;
     private String label;
 
-    private MovieClipFrameElement[] elements;
+    private List<MovieClipFrameElement> elements;
 
     public MovieClipFrame() {
     }
 
     public MovieClipFrame(FBMovieClipFrame fb, FBResources resources, int offset) {
-        elementCount = fb.frameElementCount();
         label = resources.strings(fb.labelRefId());
-        elements = new MovieClipFrameElement[elementCount];
-        for (int i = 0; i < elements.length; i++) {
-            elements[i] = new MovieClipFrameElement(resources.movieClipFrameElements(offset + i));
+        elements = new ArrayList<>(fb.frameElementCount());
+        for (int i = 0; i < fb.frameElementCount(); i++) {
+            elements.add(new MovieClipFrameElement(resources.movieClipFrameElements(offset + i)));
         }
+
+        tag = Tag.MOVIE_CLIP_FRAME_2;
     }
 
     public int load(ByteStream stream, Tag tag) {
-        this.elementCount = stream.readShort();
+        this.tag = tag;
+
+        int elementCount = stream.readShort();
         this.label = stream.readAscii();
 
         if (tag == Tag.MOVIE_CLIP_FRAME) {
-            this.elements = new MovieClipFrameElement[this.elementCount];
-            for (int i = 0; i < this.elementCount; i++) {
+            this.elements = new ArrayList<>(elementCount);
+            for (int i = 0; i < elementCount; i++) {
                 int childIndex = stream.readShort() & 0xFFFF;
                 int matrixIndex = stream.readShort() & 0xFFFF;
                 int colorTransformIndex = stream.readShort() & 0xFFFF;
-                this.elements[i] = new MovieClipFrameElement(childIndex, matrixIndex, colorTransformIndex);
+                this.elements.add(new MovieClipFrameElement(childIndex, matrixIndex, colorTransformIndex));
             }
         }
 
-        return this.elementCount;
+        return elementCount;
     }
 
     public void save(ByteStream stream) {
-        stream.writeShort(this.elements.length);
+        stream.writeShort(this.elements.size());
         stream.writeAscii(this.label);
+
+        if (tag == Tag.MOVIE_CLIP_FRAME) {
+            for (MovieClipFrameElement element : this.elements) {
+                stream.writeShort(element.childIndex());
+                stream.writeShort(element.matrixIndex());
+                stream.writeShort(element.colorTransformIndex());
+            }
+        }
+    }
+
+    @Override
+    public Tag getTag() {
+        return tag;
     }
 
     public String getLabel() {
         return label;
     }
 
-    public MovieClipFrameElement[] getElements() {
-        return elements;
-    }
-
-    public void setElements(MovieClipFrameElement[] elements) {
-        this.elements = elements;
-    }
-
     public int getElementCount() {
-        return elementCount;
+        return elements.size();
+    }
+
+    public List<MovieClipFrameElement> getElements() {
+        return Collections.unmodifiableList(elements);
+    }
+
+    public void setElements(List<MovieClipFrameElement> elements) {
+        this.elements = elements;
     }
 }

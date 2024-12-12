@@ -12,28 +12,36 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
 public class ShapeOriginal extends DisplayObjectOriginal {
     private static final Logger LOGGER = LoggerFactory.getLogger(ShapeOriginal.class);
 
-    private transient Tag tag;
+    private Tag tag;
 
     private int id;
-    private ArrayList<ShapeDrawBitmapCommand> commands;
+    private List<ShapeDrawBitmapCommand> commands;
 
     public ShapeOriginal() {
     }
 
     public ShapeOriginal(FBShape fb, FBResources resources) {
-        tag = Tag.SHAPE;
         id = fb.id();
 
         commands = new ArrayList<>(fb.commandsLength());
         for (int i = 0; i < fb.commandsLength(); i++) {
             commands.add(new ShapeDrawBitmapCommand(fb.commands(i), resources));
         }
+
+        tag = determineTag();
+    }
+
+    private Tag determineTag() {
+        boolean onlyQuadCommands = commands.stream().allMatch(shapeDrawBitmapCommand -> shapeDrawBitmapCommand.getTag() == Tag.SHAPE_DRAW_BITMAP_COMMAND);
+
+        return onlyQuadCommands ? Tag.SHAPE : Tag.SHAPE_2;
     }
 
     public int load(ByteStream stream, Tag tag, Function<Integer, SWFTexture> imageFunction, String filename) throws NegativeTagLengthException {
@@ -63,6 +71,8 @@ public class ShapeOriginal extends DisplayObjectOriginal {
                 throw new NegativeTagLengthException(String.format("Negative tag length in Shape. Tag %d, %s", commandTag, filename));
             }
 
+            int startPosition = stream.getPosition();
+
             Tag tagValue = Tag.values()[commandTag];
             switch (tagValue) {
                 case EOF -> {
@@ -90,6 +100,11 @@ public class ShapeOriginal extends DisplayObjectOriginal {
                     }
                 }
             }
+
+            int position = stream.getPosition();
+            if (position - startPosition != length){
+                throw new IllegalStateException("Read bytes amount doesn't equal to " + length + " vs " + (position - startPosition) + ". Tag " + tag);
+            }
         }
     }
 
@@ -103,11 +118,10 @@ public class ShapeOriginal extends DisplayObjectOriginal {
         }
 
         for (ShapeDrawBitmapCommand command : this.commands) {
-            stream.writeBlock(command.getTag(), command::save);
+            stream.writeSavable(command);
         }
 
-        stream.writeBlock(Tag.EOF, ignored -> {
-        });
+        stream.writeBlock(Tag.EOF, null);
     }
 
     @Override
@@ -115,13 +129,13 @@ public class ShapeOriginal extends DisplayObjectOriginal {
         return this.id;
     }
 
-    public List<ShapeDrawBitmapCommand> getCommands() {
-        return this.commands;
-    }
-
     @Override
     public Tag getTag() {
         return tag;
+    }
+
+    public List<ShapeDrawBitmapCommand> getCommands() {
+        return Collections.unmodifiableList(this.commands);
     }
 
     private int calculatePointCount() {
