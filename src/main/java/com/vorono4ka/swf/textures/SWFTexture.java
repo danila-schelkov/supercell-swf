@@ -35,8 +35,6 @@ public class SWFTexture implements Savable {
     }
 
     public SWFTexture(FBTexture fb, FBResources resources) {
-        this.tag = Tag.KHRONOS_TEXTURE;
-
         this.type = fb.type();
         this.width = fb.width();
         this.height = fb.height();
@@ -53,6 +51,7 @@ public class SWFTexture implements Savable {
         }
 
         textureInfo = TextureInfo.getTextureInfoByType(type);
+        this.tag = determineTag();
     }
 
     private static boolean hasInterlacing(Tag tag) {
@@ -94,25 +93,25 @@ public class SWFTexture implements Savable {
 
     @Override
     public void save(ByteStream stream) {
+        if (tag == Tag.KHRONOS_TEXTURE) {
+            stream.writeInt(ktxData.length);
+        }
+
+        if (tag == Tag.TEXTURE_FILE_REFERENCE) {
+            stream.writeAscii(textureFilename);
+        }
+
         stream.writeUnsignedChar(type);  // TODO: calculate type
         stream.writeShort(width);
         stream.writeShort(height);
-    }
 
-    public int getIndex() {
-        return index;
-    }
-
-    public void setIndex(int index) {
-        this.index = index;
+        if (tag == Tag.KHRONOS_TEXTURE) {
+            stream.write(ktxData);
+        }
     }
 
     public Tag getTag() {
         return tag;
-    }
-
-    public void setTag(Tag tag) {
-        this.tag = tag;
     }
 
     public int getType() {
@@ -127,10 +126,6 @@ public class SWFTexture implements Savable {
         return height;
     }
 
-    public TextureInfo getTextureInfo() {
-        return textureInfo;
-    }
-
     public byte[] getKtxData() {
         return ktxData;
     }
@@ -141,6 +136,23 @@ public class SWFTexture implements Savable {
 
     public Buffer getPixels() {
         return pixels;
+    }
+
+    public int getIndex() {
+        return index;
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
+    }
+
+    public TextureInfo getTextureInfo() {
+        return textureInfo;
+    }
+
+    @Override
+    public String toString() {
+        return "SWFTexture{" + "tag=" + tag + ", type=" + type + ", width=" + width + ", height=" + height + ", ktxData=" + Arrays.toString(ktxData) + ", textureFilename='" + textureFilename + '\'' + ", pixels=" + pixels + ", index=" + index + ", textureInfo=" + textureInfo + '}';
     }
 
     private Buffer loadTexture(ByteStream stream, int width, int height, int pixelBytes, boolean hasInterlacing) {
@@ -242,19 +254,16 @@ public class SWFTexture implements Savable {
         }
     }
 
-    @Override
-    public String toString() {
-        return "SWFTexture{" +
-            "tag=" + tag +
-            ", type=" + type +
-            ", width=" + width +
-            ", height=" + height +
-            ", ktxData=" + Arrays.toString(ktxData) +
-            ", textureFilename='" + textureFilename + '\'' +
-            ", pixels=" + pixels +
-            ", index=" + index +
-            ", textureInfo=" + textureInfo +
-            '}';
+    private Tag determineTag() {
+        if (this.ktxData != null) {
+            return Tag.KHRONOS_TEXTURE;
+        }
+
+        if (this.textureFilename != null) {
+            return Tag.TEXTURE_FILE_REFERENCE;
+        }
+
+        throw new IllegalStateException("This type of texture is not supported yet.");
     }
 
     @FunctionalInterface

@@ -1,8 +1,8 @@
 package com.vorono4ka.streams;
 
+import com.vorono4ka.swf.Savable;
 import com.vorono4ka.swf.Tag;
 
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -99,15 +99,27 @@ public class ByteStream {
         this.write(stringBytes);
     }
 
+    public void writeSavable(Savable object) {
+        this.writeBlock(object.getTag(), object::save);
+    }
+
     public void writeBlock(Tag tag, Consumer<ByteStream> consumer) {
-        ByteStream blockStream = new ByteStream();
-        consumer.accept(blockStream);
+        writeBlock(tag, consumer, ByteStream.DEFAULT_BUFFER_LENGTH);
+    }
 
-        byte[] blockData = blockStream.getData();
-
+    public void writeBlock(Tag tag, Consumer<ByteStream> consumer, int length) {
         this.writeUnsignedChar(tag.ordinal());
-        this.writeInt(blockData.length);
-        this.write(blockData);
+
+        if (consumer != null) {
+            ByteStream blockStream = new ByteStream(new byte[length]);
+            consumer.accept(blockStream);
+
+            byte[] blockData = blockStream.getData();
+            this.writeInt(blockData.length);
+            this.write(blockData);
+        } else {
+            this.writeInt(0);
+        }
     }
 
     public int readUnsignedChar() {
@@ -169,7 +181,9 @@ public class ByteStream {
 
 
     public byte[] getData() {
-        return ByteBuffer.allocate(this.position).put(this.data, 0, this.position).array();
+        byte[] data = new byte[this.position];
+        System.arraycopy(this.data, 0, data, 0, this.position);
+        return data;
     }
 
     public void setData(byte[] data) {

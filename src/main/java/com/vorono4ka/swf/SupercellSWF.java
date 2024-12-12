@@ -1,6 +1,7 @@
 package com.vorono4ka.swf;
 
 import com.vorono4ka.FlatSupercellSWFLoader;
+import com.vorono4ka.ProgressTracker;
 import com.vorono4ka.math.Rendering;
 import com.vorono4ka.streams.ByteStream;
 import com.vorono4ka.swf.exceptions.*;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class SupercellSWF {
@@ -71,8 +73,8 @@ public class SupercellSWF {
         return false;
     }
 
-    public void save(String path) {
-        this.saveInternal(path, false);
+    public void save(String path, ProgressTracker tracker) {
+        this.saveInternal(path, false, tracker);
         // Add an option "Save textures as external files" when saving the whole project
     }
 
@@ -132,16 +134,32 @@ public class SupercellSWF {
         return this.textures != null ? this.textures.size() : 0;
     }
 
-    public int[] getShapesIds() {
+    public int[] getShapeIds() {
         return shapes.stream().mapToInt(DisplayObjectOriginal::getId).toArray();
     }
 
-    public int[] getMovieClipsIds() {
+    public int[] getMovieClipIds() {
         return movieClips.stream().mapToInt(DisplayObjectOriginal::getId).toArray();
     }
 
-    public int[] getTextFieldsIds() {
+    public int[] getTextFieldIds() {
         return textFields.stream().mapToInt(DisplayObjectOriginal::getId).toArray();
+    }
+
+    public List<ShapeOriginal> getShapes() {
+        return Collections.unmodifiableList(shapes);
+    }
+
+    public List<MovieClipOriginal> getMovieClips() {
+        return Collections.unmodifiableList(movieClips);
+    }
+
+    public List<TextFieldOriginal> getTextFields() {
+        return Collections.unmodifiableList(textFields);
+    }
+
+    public int getMatrixBankCount() {
+        return matrixBanks.size();
     }
 
     public ScMatrixBank getMatrixBank(int index) {
@@ -199,7 +217,7 @@ public class SupercellSWF {
             byte[] decompressedData = unpacked.data();
 
             if (unpacked.version() == 5) {
-                boolean result = loadAsFlat(decompressedData);
+                boolean result = loadSc2(decompressedData);
 
                 for (ShapeOriginal shape : shapes) {
                     for (ShapeDrawBitmapCommand command : shape.getCommands()) {
@@ -210,7 +228,7 @@ public class SupercellSWF {
                 return result;
             }
 
-            return loadOld(path, isTextureFile, decompressedData);
+            return loadSc1(path, isTextureFile, decompressedData);
         } catch (UnknownFileVersionException | FileVerificationException |
                  IOException exception) {
             LOGGER.error("An error occurred while decompressing the file: {}", path, exception);
@@ -218,8 +236,8 @@ public class SupercellSWF {
         }
     }
 
-    private boolean loadAsFlat(byte[] decompressedData) {
-        FlatSupercellSWFLoader loader = new FlatSupercellSWFLoader(decompressedData, false);
+    private boolean loadSc2(byte[] decompressedData) {
+        FlatSupercellSWFLoader loader = new FlatSupercellSWFLoader(decompressedData, true);
 
         this.exports = loader.exports;
         this.matrixBanks.addAll(loader.matrixBanks);
@@ -236,7 +254,7 @@ public class SupercellSWF {
         return true;
     }
 
-    private boolean loadOld(String path, boolean isTextureFile, byte[] decompressedData) throws LoadingFaultException, UnsupportedCustomPropertyException, TextureFileNotFound, UnableToFindObjectException {
+    private boolean loadSc1(String path, boolean isTextureFile, byte[] decompressedData) throws LoadingFaultException, UnsupportedCustomPropertyException, TextureFileNotFound, UnableToFindObjectException {
         ByteStream stream = new ByteStream(decompressedData);
 
         if (isTextureFile) {
@@ -344,6 +362,8 @@ public class SupercellSWF {
                 }
             }
 
+            int startPosition = stream.getPosition();
+
             Tag tagValue = Tag.values()[tag];
             switch (tagValue) {
                 case EOF -> {
@@ -357,7 +377,7 @@ public class SupercellSWF {
                             loadedMovieClips != this.movieClips.size() ||
                             loadedShapes != this.shapes.size() ||
                             loadedTextFields != this.textFields.size()) {
-                            throw new LoadingFaultException("Didn't load whole .sc properly. ");
+                            throw new LoadingFaultException("Didn't load whole .sc properly. " + filename);
                         }
                     }
 
@@ -367,14 +387,14 @@ public class SupercellSWF {
                      TEXTURE_7, TEXTURE_8, KHRONOS_TEXTURE,
                      TEXTURE_FILE_REFERENCE -> {
                     if (loadedTextures >= this.textures.size()) {
-                        throw new TooManyObjectsException("Trying to load too many textures from ");
+                        throw new TooManyObjectsException("Trying to load too many textures from " + filename);
                     }
                     this.textures.get(loadedTextures).setIndex(loadedTextures);
                     this.textures.get(loadedTextures++).load(stream, tagValue, !this.useExternalTexture || isTextureFile);
                 }
                 case SHAPE, SHAPE_2 -> {
                     if (loadedShapes >= this.shapes.size()) {
-                        throw new TooManyObjectsException("Trying to load too many shapes from ");
+                        throw new TooManyObjectsException("Trying to load too many shapes from " + filename);
                     }
 
                     this.shapes.get(loadedShapes++).load(stream, tagValue, this::getTexture, filename);
@@ -382,7 +402,7 @@ public class SupercellSWF {
                 case MOVIE_CLIP, MOVIE_CLIP_2, MOVIE_CLIP_3, MOVIE_CLIP_4, MOVIE_CLIP_5,
                      MOVIE_CLIP_6 -> {
                     if (loadedMovieClips >= this.movieClips.size()) {
-                        throw new TooManyObjectsException("Trying to load too many MovieClips from ");
+                        throw new TooManyObjectsException("Trying to load too many MovieClips from " + filename);
                     }
 
                     this.movieClips.get(loadedMovieClips++).load(stream, tagValue, filename);
@@ -390,7 +410,7 @@ public class SupercellSWF {
                 case TEXT_FIELD, TEXT_FIELD_2, TEXT_FIELD_3, TEXT_FIELD_4, TEXT_FIELD_5,
                      TEXT_FIELD_6, TEXT_FIELD_7, TEXT_FIELD_8, TEXT_FIELD_9 -> {
                     if (loadedTextFields >= this.textFields.size()) {
-                        throw new TooManyObjectsException("Trying to load too many TextFields from ");
+                        throw new TooManyObjectsException("Trying to load too many TextFields from " + filename);
                     }
 
                     this.textFields.get(loadedTextFields++).load(stream, tagValue, this::readFontName);
@@ -469,6 +489,11 @@ public class SupercellSWF {
                     }
                 }
             }
+
+            int position = stream.getPosition();
+            if (position - startPosition != length){
+                throw new IllegalStateException("Read bytes amount doesn't equal to " + length + " vs " + (position - startPosition) + ". Tag " + tag);
+            }
         }
     }
 
@@ -483,19 +508,19 @@ public class SupercellSWF {
         return fontName;
     }
 
-    private void saveInternal(String path, boolean isTextureFile) {
+    private void saveInternal(String path, boolean isTextureFile, ProgressTracker tracker) {
         ByteStream stream = new ByteStream();
 
         if (!isTextureFile) {
             saveObjectsInfo(stream);
         }
 
-        this.saveTags(stream);
+        this.saveTags(stream, tracker);
 
         byte[] data = stream.getData();
 
         try {
-            data = ScFilePacker.pack(data, new byte[0], 4);
+            data = ScFilePacker.pack(data, new byte[0], 3);
         } catch (IOException | UnknownFileVersionException e) {
             throw new RuntimeException(e);
         }
@@ -529,15 +554,18 @@ public class SupercellSWF {
         }
     }
 
-    private void saveTags(ByteStream stream) {
+    private void saveTags(ByteStream stream, ProgressTracker tracker) {
         List<Savable> savables = this.getSavableObjects();
 
+        int i = 0;
         for (Savable object : savables) {
-            stream.writeBlock(object.getTag(), object::save);
+            stream.writeSavable(object);
+            if (tracker != null) {
+                tracker.setProgress(++i, savables.size());
+            }
         }
 
-        stream.writeBlock(Tag.EOF, (ignored) -> {
-        });
+        stream.writeBlock(Tag.EOF, null);
     }
 
     private List<Savable> getSavableObjects() {

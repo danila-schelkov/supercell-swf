@@ -1,11 +1,12 @@
 package com.vorono4ka.swf;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ScMatrixBank {
-    private ArrayList<Matrix2x3> matrices;
-    private ArrayList<ColorTransform> colorTransforms;
+    private List<Matrix2x3> matrices;
+    private List<ColorTransform> colorTransforms;
 
     public void init(int matrixCount, int colorTransformCount) {
         this.matrices = new ArrayList<>(matrixCount);
@@ -19,12 +20,20 @@ public class ScMatrixBank {
         }
     }
 
+    public void clearMatrices() {
+        this.matrices = new ArrayList<>();
+    }
+
+    public void addMatrix(Matrix2x3 matrix) {
+        this.matrices.add(matrix);
+    }
+
     public List<Matrix2x3> getMatrices() {
-        return this.matrices;
+        return Collections.unmodifiableList(this.matrices);
     }
 
     public List<ColorTransform> getColorTransforms() {
-        return colorTransforms;
+        return Collections.unmodifiableList(colorTransforms);
     }
 
     public Matrix2x3 getMatrix(int index) {
