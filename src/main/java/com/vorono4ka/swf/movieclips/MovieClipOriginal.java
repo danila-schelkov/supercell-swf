@@ -24,7 +24,6 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
 
     private Tag tag;
 
-    private int id;
     private String exportName;
     private byte fps;
     /**
@@ -265,11 +264,6 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         return this.timelineChildren;
     }
 
-    @Override
-    public int getId() {
-        return this.id;
-    }
-
     public int getFps() {
         return fps;
     }
@@ -288,6 +282,10 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
 
     public int getMatrixBankIndex() {
         return matrixBankIndex;
+    }
+
+    public void setMatrixBankIndex(short matrixBankIndex) {
+        this.matrixBankIndex = matrixBankIndex;
     }
 
     public DisplayObjectOriginal[] getTimelineChildren() {

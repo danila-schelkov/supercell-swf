@@ -7,7 +7,6 @@ import com.vorono4ka.swf.Tag;
 
 public class MovieClipModifierOriginal extends DisplayObjectOriginal {
     private Tag tag;
-    private int id;
 
     public MovieClipModifierOriginal() {
     }
@@ -25,11 +24,6 @@ public class MovieClipModifierOriginal extends DisplayObjectOriginal {
 
     public void save(ByteStream stream) {
         stream.writeShort(this.id);
-    }
-
-    @Override
-    public int getId() {
-        return id;
     }
 
     @Override

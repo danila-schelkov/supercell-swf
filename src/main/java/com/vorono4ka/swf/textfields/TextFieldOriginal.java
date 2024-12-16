@@ -12,8 +12,6 @@ import java.util.function.Function;
 public class TextFieldOriginal extends DisplayObjectOriginal {
     private Tag tag;
 
-    private int id;
-
     private String fontName;
 
     private ShortRect bounds;
@@ -196,11 +194,6 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
         if (this.tag == Tag.TEXT_FIELD_8) return;
 
         stream.writeAscii(this.anotherText);
-    }
-
-    @Override
-    public int getId() {
-        return id;
     }
 
     @Override
