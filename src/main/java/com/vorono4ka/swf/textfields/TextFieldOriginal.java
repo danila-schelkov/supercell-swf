@@ -41,12 +41,12 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
 
     public TextFieldOriginal(FBTextField fb, FBResources resources) {
         id = fb.id();
-        fontName = resources.strings(fb.fontNameRefId());
+        fontName = fb.fontNameRefId() != 0 ? resources.strings(fb.fontNameRefId()) : null;
         bounds = new ShortRect(fb.left(), fb.top(), fb.right(), fb.bottom());
         color = fb.color();
         outlineColor = fb.outlineColor();
-        defaultText = resources.strings(fb.defaultTextRefId());
-        anotherText = resources.strings(fb.anotherTextRefId());
+        defaultText = fb.defaultTextRefId() != 0 ? resources.strings(fb.defaultTextRefId()) : null;
+        anotherText = fb.anotherTextRefId() != 0 ? resources.strings(fb.anotherTextRefId()) : null;
         align = (byte) fb.align();
         fontSize = (byte) fb.fontSize();
         setStyles((byte) fb.styles());

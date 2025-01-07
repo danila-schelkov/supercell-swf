@@ -69,11 +69,11 @@ public class SupercellSWF {
         return swf;
     }
 
-    public boolean load(String filepath, String filename) throws LoadingFaultException, UnableToFindObjectException, UnsupportedCustomPropertyException, TextureFileNotFound {
+    public boolean load(String filepath, String filename, boolean preferLowres) throws LoadingFaultException, UnableToFindObjectException, UnsupportedCustomPropertyException, TextureFileNotFound {
         this.filename = filename;
         this.path = Path.of(filepath);
 
-        if (this.loadInternal(filepath, false)) {
+        if (this.loadInternal(filepath, false, preferLowres)) {
             if (!this.useExternalTexture) return true;
 
             if (this.useUncommonResolution) {
@@ -82,7 +82,7 @@ public class SupercellSWF {
                 filepath = filepath.substring(0, filepath.length() - 3) + TEXTURE_EXTENSION;
             }
 
-            return this.loadInternal(filepath, true);
+            return this.loadInternal(filepath, true, preferLowres);
         }
 
         return false;
@@ -149,16 +149,44 @@ public class SupercellSWF {
         return this.textures != null ? this.textures.size() : 0;
     }
 
-    public int[] getShapesIds() {
+    public List<SWFTexture> getTextures() {
+        return Collections.unmodifiableList(this.textures);
+    }
+
+    public SWFTexture getTexture(int textureIndex) {
+        return this.textures.get(textureIndex);
+    }
+
+    public void addTexture(SWFTexture texture) {
+        this.textures.add(texture);
+    }
+
+    public List<ShapeOriginal> getShapes() {
+        return Collections.unmodifiableList(shapes);
+    }
+
+    public int[] getShapeIds() {
         return shapes.stream().mapToInt(DisplayObjectOriginal::getId).toArray();
     }
 
-    public int[] getMovieClipsIds() {
+    public List<MovieClipOriginal> getMovieClips() {
+        return Collections.unmodifiableList(movieClips);
+    }
+
+    public int[] getMovieClipIds() {
         return movieClips.stream().mapToInt(DisplayObjectOriginal::getId).toArray();
     }
 
-    public int[] getTextFieldsIds() {
+    public List<TextFieldOriginal> getTextFields() {
+        return Collections.unmodifiableList(textFields);
+    }
+
+    public int[] getTextFieldIds() {
         return textFields.stream().mapToInt(DisplayObjectOriginal::getId).toArray();
+    }
+
+    public List<MovieClipModifierOriginal> getMovieClipModifiers() {
+        return Collections.unmodifiableList(movieClipModifiers);
     }
 
     public List<ScMatrixBank> getMatrixBanks() {
@@ -175,14 +203,6 @@ public class SupercellSWF {
 
     public void addMatrixBank(ScMatrixBank matrixBank) {
         this.matrixBanks.add(matrixBank);
-    }
-
-    public List<SWFTexture> getTextures() {
-        return Collections.unmodifiableList(this.textures);
-    }
-
-    public SWFTexture getTexture(int textureIndex) {
-        return this.textures.get(textureIndex);
     }
 
     /**
@@ -216,7 +236,7 @@ public class SupercellSWF {
         return bitmapCommands;
     }
 
-    private boolean loadInternal(String path, boolean isTextureFile) throws LoadingFaultException, UnableToFindObjectException, UnsupportedCustomPropertyException, TextureFileNotFound {
+    private boolean loadInternal(String path, boolean isTextureFile, boolean preferLowres) throws LoadingFaultException, UnableToFindObjectException, UnsupportedCustomPropertyException, TextureFileNotFound {
         try {
             byte[] data;
             try (FileInputStream fis = new FileInputStream(path)) {
@@ -228,7 +248,7 @@ public class SupercellSWF {
             byte[] decompressedData = unpacked.data();
 
             if (unpacked.version() == 5) {
-                boolean result = loadSc2(decompressedData);
+                boolean result = loadSc2(decompressedData, preferLowres);
 
                 for (ShapeOriginal shape : shapes) {
                     for (ShapeDrawBitmapCommand command : shape.getCommands()) {
@@ -247,8 +267,8 @@ public class SupercellSWF {
         }
     }
 
-    private boolean loadSc2(byte[] decompressedData) {
-        FlatSupercellSWFLoader loader = new FlatSupercellSWFLoader(decompressedData, true);
+    private boolean loadSc2(byte[] decompressedData, boolean preferLowres) {
+        FlatSupercellSWFLoader loader = new FlatSupercellSWFLoader(decompressedData, preferLowres);
 
         this.exports = loader.exports;
         this.matrixBanks.addAll(loader.matrixBanks);
@@ -651,28 +671,34 @@ public class SupercellSWF {
     }
 
     public List<Export> getExports() {
-        return Collections.unmodifiableList(exports);
-    }
-
-    public void addTexture(SWFTexture texture) {
-        this.textures.add(texture);
-    }
-
-    public void addObject(DisplayObjectOriginal objectOriginal) {
-        if (objectOriginal instanceof MovieClipOriginal movieClipOriginal) {
-            this.movieClips.add(movieClipOriginal);
-        } else if (objectOriginal instanceof ShapeOriginal shapeOriginal) {
-            this.shapes.add(shapeOriginal);
-        } else if (objectOriginal instanceof TextFieldOriginal textFieldOriginal) {
-            this.textFields.add(textFieldOriginal);
-        } else if (objectOriginal instanceof MovieClipModifierOriginal movieClipModifierOriginal) {
-            this.movieClipModifiers.add(movieClipModifierOriginal);
-        } else {
-            throw new RuntimeException("Object not recognized: " + objectOriginal);
-        }
+        return exports;
     }
 
     public void addExport(int movieClipId, String name) {
         this.exports.add(new Export(movieClipId, name));
+    }
+
+    /**
+     * Adds object to corresponding object list, returning its identifier.
+     *
+     * @param object display object to be added
+     * @return new object id
+     */
+    public int addObject(DisplayObjectOriginal object) {
+        int nextId = this.movieClips.size() + this.shapes.size() + this.textFields.size() + this.movieClipModifiers.size() + 1;
+
+        if (object instanceof MovieClipOriginal movieClipOriginal) {
+            this.movieClips.add(movieClipOriginal);
+        } else if (object instanceof ShapeOriginal shapeOriginal) {
+            this.shapes.add(shapeOriginal);
+        } else if (object instanceof TextFieldOriginal textFieldOriginal) {
+            this.textFields.add(textFieldOriginal);
+        } else if (object instanceof MovieClipModifierOriginal movieClipModifierOriginal) {
+            this.movieClipModifiers.add(movieClipModifierOriginal);
+        } else {
+            throw new RuntimeException("Object not recognized: " + object);
+        }
+
+        return nextId;
     }
 }
