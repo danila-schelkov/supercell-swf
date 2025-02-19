@@ -54,11 +54,26 @@ public class SupercellSWF {
     private String filename;
     private Path path;
 
-    public boolean load(String filepath, String filename) throws LoadingFaultException, UnableToFindObjectException, UnsupportedCustomPropertyException, TextureFileNotFound {
+    public static SupercellSWF createEmpty() {
+        SupercellSWF swf = new SupercellSWF();
+
+        swf.exports = new ArrayList<>();
+        swf.textures = new ArrayList<>();
+        swf.shapes = new ArrayList<>();
+        swf.movieClips = new ArrayList<>();
+        swf.textFields = new ArrayList<>();
+        swf.movieClipModifiers = new ArrayList<>();
+
+        swf.addMatrixBank(new ScMatrixBank());
+
+        return swf;
+    }
+
+    public boolean load(String filepath, String filename, boolean preferLowres) throws LoadingFaultException, UnableToFindObjectException, UnsupportedCustomPropertyException, TextureFileNotFound {
         this.filename = filename;
         this.path = Path.of(filepath);
 
-        if (this.loadInternal(filepath, false)) {
+        if (this.loadInternal(filepath, false, preferLowres)) {
             if (!this.useExternalTexture) return true;
 
             if (this.useUncommonResolution) {
@@ -67,7 +82,7 @@ public class SupercellSWF {
                 filepath = filepath.substring(0, filepath.length() - 3) + TEXTURE_EXTENSION;
             }
 
-            return this.loadInternal(filepath, true);
+            return this.loadInternal(filepath, true, preferLowres);
         }
 
         return false;
@@ -134,32 +149,52 @@ public class SupercellSWF {
         return this.textures != null ? this.textures.size() : 0;
     }
 
-    public int[] getShapeIds() {
-        return shapes.stream().mapToInt(DisplayObjectOriginal::getId).toArray();
+    public List<SWFTexture> getTextures() {
+        return Collections.unmodifiableList(this.textures);
     }
 
-    public int[] getMovieClipIds() {
-        return movieClips.stream().mapToInt(DisplayObjectOriginal::getId).toArray();
+    public SWFTexture getTexture(int textureIndex) {
+        return this.textures.get(textureIndex);
     }
 
-    public int[] getTextFieldIds() {
-        return textFields.stream().mapToInt(DisplayObjectOriginal::getId).toArray();
+    public void addTexture(SWFTexture texture) {
+        this.textures.add(texture);
     }
 
     public List<ShapeOriginal> getShapes() {
         return Collections.unmodifiableList(shapes);
     }
 
+    public int[] getShapeIds() {
+        return shapes.stream().mapToInt(DisplayObjectOriginal::getId).toArray();
+    }
+
     public List<MovieClipOriginal> getMovieClips() {
         return Collections.unmodifiableList(movieClips);
+    }
+
+    public int[] getMovieClipIds() {
+        return movieClips.stream().mapToInt(DisplayObjectOriginal::getId).toArray();
     }
 
     public List<TextFieldOriginal> getTextFields() {
         return Collections.unmodifiableList(textFields);
     }
 
+    public int[] getTextFieldIds() {
+        return textFields.stream().mapToInt(DisplayObjectOriginal::getId).toArray();
+    }
+
+    public List<MovieClipModifierOriginal> getMovieClipModifiers() {
+        return Collections.unmodifiableList(movieClipModifiers);
+    }
+
+    public List<ScMatrixBank> getMatrixBanks() {
+        return Collections.unmodifiableList(this.matrixBanks);
+    }
+
     public int getMatrixBankCount() {
-        return matrixBanks.size();
+        return this.matrixBanks.size();
     }
 
     public ScMatrixBank getMatrixBank(int index) {
@@ -168,10 +203,6 @@ public class SupercellSWF {
 
     public void addMatrixBank(ScMatrixBank matrixBank) {
         this.matrixBanks.add(matrixBank);
-    }
-
-    public SWFTexture getTexture(int textureIndex) {
-        return this.textures.get(textureIndex);
     }
 
     /**
@@ -205,7 +236,7 @@ public class SupercellSWF {
         return bitmapCommands;
     }
 
-    private boolean loadInternal(String path, boolean isTextureFile) throws LoadingFaultException, UnableToFindObjectException, UnsupportedCustomPropertyException, TextureFileNotFound {
+    private boolean loadInternal(String path, boolean isTextureFile, boolean preferLowres) throws LoadingFaultException, UnableToFindObjectException, UnsupportedCustomPropertyException, TextureFileNotFound {
         try {
             byte[] data;
             try (FileInputStream fis = new FileInputStream(path)) {
@@ -217,7 +248,7 @@ public class SupercellSWF {
             byte[] decompressedData = unpacked.data();
 
             if (unpacked.version() == 5) {
-                boolean result = loadSc2(decompressedData);
+                boolean result = loadSc2(decompressedData, preferLowres);
 
                 for (ShapeOriginal shape : shapes) {
                     for (ShapeDrawBitmapCommand command : shape.getCommands()) {
@@ -236,8 +267,8 @@ public class SupercellSWF {
         }
     }
 
-    private boolean loadSc2(byte[] decompressedData) {
-        FlatSupercellSWFLoader loader = new FlatSupercellSWFLoader(decompressedData, true);
+    private boolean loadSc2(byte[] decompressedData, boolean preferLowres) {
+        FlatSupercellSWFLoader loader = new FlatSupercellSWFLoader(decompressedData, preferLowres);
 
         this.exports = loader.exports;
         this.matrixBanks.addAll(loader.matrixBanks);
@@ -254,7 +285,7 @@ public class SupercellSWF {
         return true;
     }
 
-    private boolean loadSc1(String path, boolean isTextureFile, byte[] decompressedData) throws LoadingFaultException, UnsupportedCustomPropertyException, TextureFileNotFound, UnableToFindObjectException {
+    private boolean loadSc1(String path, boolean isTextureFile, byte[] decompressedData) throws LoadingFaultException, UnsupportedCustomPropertyException, UnableToFindObjectException {
         ByteStream stream = new ByteStream(decompressedData);
 
         if (isTextureFile) {
@@ -268,8 +299,7 @@ public class SupercellSWF {
         int matrixCount = stream.readShort();
         int colorTransformCount = stream.readShort();
 
-        ScMatrixBank matrixBank = new ScMatrixBank();
-        matrixBank.init(matrixCount, colorTransformCount);
+        ScMatrixBank matrixBank = new ScMatrixBank(matrixCount, colorTransformCount);
         this.addMatrixBank(matrixBank);
 
         stream.skip(5);
@@ -326,7 +356,7 @@ public class SupercellSWF {
         return false;
     }
 
-    private boolean loadTags(ByteStream stream, boolean isTextureFile, String path) throws LoadingFaultException, UnsupportedCustomPropertyException, TextureFileNotFound {
+    private boolean loadTags(ByteStream stream, boolean isTextureFile, String path) throws LoadingFaultException, UnsupportedCustomPropertyException {
         String highresSuffix = "_highres";
         String lowresSuffix = "_lowres";
 
@@ -361,8 +391,6 @@ public class SupercellSWF {
                     continue;
                 }
             }
-
-            int startPosition = stream.getPosition();
 
             Tag tagValue = Tag.values()[tag];
             switch (tagValue) {
@@ -468,8 +496,7 @@ public class SupercellSWF {
                     int matrixCount = stream.readShort();
                     int colorTransformCount = stream.readShort();
 
-                    matrixBank = new ScMatrixBank();
-                    matrixBank.init(matrixCount, colorTransformCount);
+                    matrixBank = new ScMatrixBank(matrixCount, colorTransformCount);
                     this.matrixBanks.add(matrixBank);
 
                     loadedMatrices = 0;
@@ -488,11 +515,6 @@ public class SupercellSWF {
                         stream.skip(length);
                     }
                 }
-            }
-
-            int position = stream.getPosition();
-            if (position - startPosition != length){
-                throw new IllegalStateException("Read bytes amount doesn't equal to " + length + " vs " + (position - startPosition) + ". Tag " + tag);
             }
         }
     }
@@ -646,5 +668,37 @@ public class SupercellSWF {
 
     private static boolean doesFileExist(String path) {
         return Files.exists(Path.of(path));
+    }
+
+    public List<Export> getExports() {
+        return exports;
+    }
+
+    public void addExport(int movieClipId, String name) {
+        this.exports.add(new Export(movieClipId, name));
+    }
+
+    /**
+     * Adds object to corresponding object list, returning its identifier.
+     *
+     * @param object display object to be added
+     * @return new object id
+     */
+    public int addObject(DisplayObjectOriginal object) {
+        int nextId = this.movieClips.size() + this.shapes.size() + this.textFields.size() + this.movieClipModifiers.size() + 1;
+
+        if (object instanceof MovieClipOriginal movieClipOriginal) {
+            this.movieClips.add(movieClipOriginal);
+        } else if (object instanceof ShapeOriginal shapeOriginal) {
+            this.shapes.add(shapeOriginal);
+        } else if (object instanceof TextFieldOriginal textFieldOriginal) {
+            this.textFields.add(textFieldOriginal);
+        } else if (object instanceof MovieClipModifierOriginal movieClipModifierOriginal) {
+            this.movieClipModifiers.add(movieClipModifierOriginal);
+        } else {
+            throw new RuntimeException("Object not recognized: " + object);
+        }
+
+        return nextId;
     }
 }

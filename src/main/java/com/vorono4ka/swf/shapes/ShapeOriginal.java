@@ -21,7 +21,6 @@ public class ShapeOriginal extends DisplayObjectOriginal {
 
     private Tag tag;
 
-    private int id;
     private List<ShapeDrawBitmapCommand> commands;
 
     public ShapeOriginal() {
@@ -122,11 +121,6 @@ public class ShapeOriginal extends DisplayObjectOriginal {
         }
 
         stream.writeBlock(Tag.EOF, null);
-    }
-
-    @Override
-    public int getId() {
-        return this.id;
     }
 
     @Override

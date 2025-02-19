@@ -47,7 +47,7 @@ public class SWFTexture implements Savable {
 
             this.ktxData = data;
         } else {
-            this.textureFilename = resources.strings(fb.textureFileRefId());
+            this.textureFilename = fb.textureFileRefId() != 0 ? resources.strings(fb.textureFileRefId()) : null;
         }
 
         textureInfo = TextureInfo.getTextureInfoByType(type);

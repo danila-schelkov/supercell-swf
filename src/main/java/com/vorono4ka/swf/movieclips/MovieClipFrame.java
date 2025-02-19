@@ -22,7 +22,7 @@ public class MovieClipFrame implements Savable {
     }
 
     public MovieClipFrame(FBMovieClipFrame fb, FBResources resources, int offset) {
-        label = resources.strings(fb.labelRefId());
+        label = fb.labelRefId() != 0 ? resources.strings(fb.labelRefId()) : null;
         elements = new ArrayList<>(fb.frameElementCount());
         for (int i = 0; i < fb.frameElementCount(); i++) {
             elements.add(new MovieClipFrameElement(resources.movieClipFrameElements(offset + i)));

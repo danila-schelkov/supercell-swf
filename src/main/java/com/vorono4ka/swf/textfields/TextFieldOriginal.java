@@ -12,8 +12,6 @@ import java.util.function.Function;
 public class TextFieldOriginal extends DisplayObjectOriginal {
     private Tag tag;
 
-    private int id;
-
     private String fontName;
 
     private ShortRect bounds;
@@ -43,12 +41,12 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
 
     public TextFieldOriginal(FBTextField fb, FBResources resources) {
         id = fb.id();
-        fontName = resources.strings(fb.fontNameRefId());
+        fontName = fb.fontNameRefId() != 0 ? resources.strings(fb.fontNameRefId()) : null;
         bounds = new ShortRect(fb.left(), fb.top(), fb.right(), fb.bottom());
         color = fb.color();
         outlineColor = fb.outlineColor();
-        defaultText = resources.strings(fb.defaultTextRefId());
-        anotherText = resources.strings(fb.anotherTextRefId());
+        defaultText = fb.defaultTextRefId() != 0 ? resources.strings(fb.defaultTextRefId()) : null;
+        anotherText = fb.anotherTextRefId() != 0 ? resources.strings(fb.anotherTextRefId()) : null;
         align = (byte) fb.align();
         fontSize = (byte) fb.fontSize();
         setStyles((byte) fb.styles());
@@ -196,11 +194,6 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
         if (this.tag == Tag.TEXT_FIELD_8) return;
 
         stream.writeAscii(this.anotherText);
-    }
-
-    @Override
-    public int getId() {
-        return id;
     }
 
     @Override

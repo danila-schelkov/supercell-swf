@@ -33,7 +33,7 @@ public class FlatSupercellSWFLoader {
     public FlatSupercellSWFLoader(byte[] data, boolean preferLowres) {
         ByteBuffer byteBuffer = ByteBuffer.wrap(data);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        
+
         this.fbResources = FBResources.getRootAsFBResources(getChunkBytes(byteBuffer));
 
         this.matrixBanks = deserializeMatrixBanks();
@@ -54,9 +54,9 @@ public class FlatSupercellSWFLoader {
             FBTextureSet fbTextureSet = fbTextureSets.textureSets(i);
             FBTexture fbHighresTexture = fbTextureSet.highresTexture();
             FBTexture fbLowresTexture = fbTextureSet.lowresTexture();
-            
+
             FBTexture fbTexture;
-            
+
             if ((fbHighresTexture == null || preferLowres) && fbLowresTexture != null) {
                 fbTexture = fbLowresTexture;
             } else if (fbHighresTexture != null) {
@@ -64,7 +64,7 @@ public class FlatSupercellSWFLoader {
             } else {
                 throw new IllegalArgumentException("FBTextureSet doesn't contain any textures.");
             }
-            
+
             textures.add(new SWFTexture(fbTexture, fbResources));
         }
 
@@ -118,7 +118,14 @@ public class FlatSupercellSWFLoader {
 
         List<Export> exports = new ArrayList<>(fbExports.exportIdsLength());
         for (int i = 0; i < fbExports.exportIdsLength(); i++) {
-            exports.add(new Export(fbExports.exportIds(i), fbResources.strings(fbExports.exportNameIds(i))));
+            int id = fbExports.exportIds(i);
+            int exportNameId = fbExports.exportNameIds(i);
+
+            if (exportNameId == 0) {
+                throw new RuntimeException("Export name not found! Movie clip id: " + id);
+            }
+
+            exports.add(new Export(id, fbResources.strings(exportNameId)));
         }
 
         return exports;

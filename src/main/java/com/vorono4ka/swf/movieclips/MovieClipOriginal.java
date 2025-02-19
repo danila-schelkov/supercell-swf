@@ -24,7 +24,6 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
 
     private Tag tag;
 
-    private int id;
     private String exportName;
     private byte fps;
     /**
@@ -43,12 +42,12 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
 
     public MovieClipOriginal(FBMovieClip fb, FBResources resources) {
         id = fb.id();
-        exportName = resources.strings(fb.exportNameRefId());
+        exportName = fb.exportNameRefId() != 0 ? resources.strings(fb.exportNameRefId()) : null;
         fps = (byte) fb.fps();
         customPropertyBoolean = (fb.property() != 0);
         children = new ArrayList<>(fb.childIdsLength());
         for (int i = 0; i < fb.childIdsLength(); i++) {
-            children.add(new MovieClipChild(fb.childIds(i), (byte) fb.childBlends(i), fb.childNameRefIdsLength() > 0 ? resources.strings(fb.childNameRefIds(i)) : null));
+            children.add(new MovieClipChild(fb.childIds(i), (byte) fb.childBlends(i), fb.childNameRefIdsLength() != 0 ? resources.strings(fb.childNameRefIds(i)) : null));
         }
         frames = new ArrayList<>(fb.framesLength());
         int frameElementOffset = fb.frameElementOffset() / 3;
@@ -265,17 +264,16 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         return this.timelineChildren;
     }
 
-    @Override
-    public int getId() {
-        return this.id;
-    }
-
     public int getFps() {
         return fps;
     }
 
     public List<MovieClipFrame> getFrames() {
         return frames;
+    }
+
+    public void setChildren(List<MovieClipChild> children) {
+        this.children = children;
     }
 
     public List<MovieClipChild> getChildren() {
@@ -288,6 +286,10 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
 
     public int getMatrixBankIndex() {
         return matrixBankIndex;
+    }
+
+    public void setMatrixBankIndex(short matrixBankIndex) {
+        this.matrixBankIndex = matrixBankIndex;
     }
 
     public DisplayObjectOriginal[] getTimelineChildren() {
