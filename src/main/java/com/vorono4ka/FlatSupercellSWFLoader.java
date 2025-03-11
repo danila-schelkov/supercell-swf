@@ -135,13 +135,26 @@ public class FlatSupercellSWFLoader {
         List<ScMatrixBank> matrixBanks = new ArrayList<>(fbResources.matrixBanksLength());
         for (int j = 0; j < fbResources.matrixBanksLength(); j++) {
             FBMatrixBank fbMatrixBank = fbResources.matrixBanks(j);
-            ScMatrixBank matrixBank = new ScMatrixBank();
-            matrixBank.init(fbMatrixBank.matricesLength(), fbMatrixBank.colorTransformsLength());
 
-            for (int i = 0; i < fbMatrixBank.matricesLength(); i++) {
-                FBMatrix2x3 fbMatrix2x3 = fbMatrixBank.matrices(i);
-                matrixBank.getMatrix(i).initFromFlatBuffer(fbMatrix2x3);
+            int matrixCount = fbMatrixBank.matricesLength();
+            if (fbMatrixBank.matricesLength() == 0) {
+                matrixCount = fbMatrixBank.shortMatricesLength();
             }
+
+            ScMatrixBank matrixBank = new ScMatrixBank(matrixCount, fbMatrixBank.colorTransformsLength());
+
+            if (fbMatrixBank.matricesLength() > 0) {
+                for (int i = 0; i < matrixCount; i++) {
+                    FBMatrix2x3 fbMatrix2x3 = fbMatrixBank.matrices(i);
+                    matrixBank.getMatrix(i).initFromFlatBuffer(fbMatrix2x3);
+                }
+            } else {
+                for (int i = 0; i < fbMatrixBank.shortMatricesLength(); i++) {
+                    FBShortMatrix2x3 fbMatrix2x3 = fbMatrixBank.shortMatrices(i);
+                    matrixBank.getMatrix(i).initFromFlatBuffer(fbMatrix2x3);
+                }
+            }
+
             for (int i = 0; i < fbMatrixBank.colorTransformsLength(); i++) {
                 FBColorTransform fbColorTransform = fbMatrixBank.colorTransforms(i);
                 matrixBank.getColorTransform(i).initFromFlatBuffer(fbColorTransform);

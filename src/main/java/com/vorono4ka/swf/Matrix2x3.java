@@ -1,6 +1,7 @@
 package com.vorono4ka.swf;
 
 import com.supercell.swf.FBMatrix2x3;
+import com.supercell.swf.FBShortMatrix2x3;
 import com.vorono4ka.streams.ByteStream;
 
 import java.util.Objects;
@@ -15,6 +16,7 @@ public class Matrix2x3 implements Savable {
     private static final float PRECISE_MULTIPLIER = 65535f;
     private static final float DEFAULT_MULTIPLIER = 1024f;
     private static final float PRECISE_FLOAT = 0.0009765f;
+    private static final float TWIP_MULTIPLIER = 20f;
 
     private float a;  // m00
     private float b;  // m01
@@ -51,6 +53,10 @@ public class Matrix2x3 implements Savable {
         initFromFlatBuffer(matrix);
     }
 
+    public Matrix2x3(FBShortMatrix2x3 matrix) {
+        initFromFlatBuffer(matrix);
+    }
+
     public void initFromFlatBuffer(FBMatrix2x3 matrix) {
         this.a = matrix.a();
         this.b = matrix.b();
@@ -58,6 +64,15 @@ public class Matrix2x3 implements Savable {
         this.d = matrix.d();
         this.x = matrix.x();
         this.y = matrix.y();
+    }
+
+    public void initFromFlatBuffer(FBShortMatrix2x3 matrix) {
+        this.a = matrix.a() / DEFAULT_MULTIPLIER;
+        this.b = matrix.b() / DEFAULT_MULTIPLIER;
+        this.c = matrix.c() / DEFAULT_MULTIPLIER;
+        this.d = matrix.d() / DEFAULT_MULTIPLIER;
+        this.x = matrix.x() / TWIP_MULTIPLIER;
+        this.y = matrix.y() / TWIP_MULTIPLIER;
     }
 
     public void load(ByteStream stream, boolean isPrecise) {

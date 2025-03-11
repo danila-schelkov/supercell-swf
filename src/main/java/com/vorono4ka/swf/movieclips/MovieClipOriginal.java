@@ -2,6 +2,7 @@ package com.vorono4ka.swf.movieclips;
 
 import com.supercell.swf.FBMovieClip;
 import com.supercell.swf.FBMovieClipFrame;
+import com.supercell.swf.FBMovieClipShortFrame;
 import com.supercell.swf.FBResources;
 import com.vorono4ka.math.MathHelper;
 import com.vorono4ka.math.Rect;
@@ -37,25 +38,33 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
 
     private DisplayObjectOriginal[] timelineChildren;
 
-    public MovieClipOriginal() {
-    }
+    public MovieClipOriginal() { }
 
     public MovieClipOriginal(FBMovieClip fb, FBResources resources) {
         id = fb.id();
         exportName = fb.exportNameRefId() != 0 ? resources.strings(fb.exportNameRefId()) : null;
         fps = (byte) fb.fps();
-        customPropertyBoolean = (fb.property() != 0);
+        customPropertyBoolean = fb.property() != 0;
         children = new ArrayList<>(fb.childIdsLength());
         for (int i = 0; i < fb.childIdsLength(); i++) {
             children.add(new MovieClipChild(fb.childIds(i), (byte) fb.childBlends(i), fb.childNameRefIdsLength() != 0 ? resources.strings(fb.childNameRefIds(i)) : null));
         }
         frames = new ArrayList<>(fb.framesLength());
         int frameElementOffset = fb.frameElementOffset() / 3;
-        for (int i = 0; i < fb.framesLength(); i++) {
-            FBMovieClipFrame fbFrame = fb.frames(i);
-            MovieClipFrame frame = new MovieClipFrame(fbFrame, resources, frameElementOffset);
-            frameElementOffset += frame.getElementCount();
-            frames.add(frame);
+        if (fb.framesLength() > 0) {
+            for (int i = 0; i < fb.framesLength(); i++) {
+                FBMovieClipFrame fbFrame = fb.frames(i);
+                MovieClipFrame frame = new MovieClipFrame(fbFrame, resources, frameElementOffset);
+                frameElementOffset += frame.getElementCount();
+                frames.add(frame);
+            }
+        } else {
+            for (int i = 0; i < fb.shortFramesLength(); i++) {
+                FBMovieClipShortFrame fbFrame = fb.shortFrames(i);
+                MovieClipFrame frame = new MovieClipFrame(fbFrame, resources, frameElementOffset);
+                frameElementOffset += frame.getElementCount();
+                frames.add(frame);
+            }
         }
         matrixBankIndex = (short) fb.matrixBankIndex();
         int scalingGridIndex = fb.scalingGridIndex();
