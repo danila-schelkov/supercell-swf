@@ -9,6 +9,15 @@ struct FBMatrix2x3 {
     y:float;
 }
 
+struct FBShortMatrix2x3 {
+    a:short;
+    b:short;
+    c:short;
+    d:short;
+    x:short;
+    y:short;
+}
+
 struct FBColorTransform {
     r:ubyte;
     g:ubyte;
@@ -22,4 +31,5 @@ struct FBColorTransform {
 table FBMatrixBank {
     matrices:[FBMatrix2x3];
     color_transforms:[FBColorTransform];
+    short_matrices:[FBShortMatrix2x3];
 }

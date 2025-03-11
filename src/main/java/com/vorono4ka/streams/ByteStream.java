@@ -179,7 +179,6 @@ public class ByteStream {
         return array;
     }
 
-
     public byte[] getData() {
         byte[] data = new byte[this.position];
         System.arraycopy(this.data, 0, data, 0, this.position);

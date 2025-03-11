@@ -11,6 +11,10 @@ struct FBMovieClipFrame {
     label_ref_id:int32;
 }
 
+struct FBMovieClipShortFrame {
+    frame_element_count:int16;
+}
+
 table FBMovieClip {
     id:uint16;
     export_name_ref_id:int32;
@@ -24,6 +28,7 @@ table FBMovieClip {
     frame_element_offset:int32;
     matrix_bank_index:uint16;
     scaling_grid_index:int32 = -1;
+    short_frames:[FBMovieClipShortFrame];
 }
 
 table FBMovieClips {
