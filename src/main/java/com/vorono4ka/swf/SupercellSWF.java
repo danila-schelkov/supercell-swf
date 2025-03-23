@@ -412,8 +412,7 @@ public class SupercellSWF {
                     return true;
                 }
                 case TEXTURE, TEXTURE_2, TEXTURE_3, TEXTURE_4, TEXTURE_5, TEXTURE_6,
-                     TEXTURE_7, TEXTURE_8, KHRONOS_TEXTURE,
-                     TEXTURE_FILE_REFERENCE -> {
+                     TEXTURE_7, TEXTURE_8, KHRONOS_TEXTURE, TEXTURE_FILE_REFERENCE -> {
                     if (loadedTextures >= this.textures.size()) {
                         throw new TooManyObjectsException("Trying to load too many textures from " + filename);
                     }
