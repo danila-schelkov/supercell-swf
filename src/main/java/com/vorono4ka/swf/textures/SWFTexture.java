@@ -18,7 +18,7 @@ import java.util.Arrays;
 public class SWFTexture implements Savable {
     public static final int TILE_SIZE = 32;
 
-    private Tag tag;
+    private Tag initialTag, tag;
 
     private byte type;
     private int width;
@@ -59,6 +59,7 @@ public class SWFTexture implements Savable {
     }
 
     public void load(ByteStream stream, Tag tag, boolean hasTexture) throws LoadingFaultException {
+        this.initialTag = this.tag == null ? tag : this.tag;
         this.tag = tag;
 
         int khronosTextureLength = 0;
@@ -84,11 +85,25 @@ public class SWFTexture implements Savable {
 
         textureInfo = TextureInfo.getTextureInfoByType(type);
 
+        // TODO: add callbacks for renderer generating
         if (tag == Tag.KHRONOS_TEXTURE) {
             ktxData = stream.readByteArray(khronosTextureLength);
         } else if (tag != Tag.TEXTURE_FILE_REFERENCE) {
             pixels = loadTexture(stream, width, height, textureInfo.pixelBytes(), hasInterlacing(tag));
         }
+
+        // Note: it seems TEXTURE_3 contains mip map data along with deprecated (?) TEXTURE_2, TEXTURE_7
+        // TODO: check
+        // if (tag == Tag.TEXTURE_3) {
+        //     int level = 1;
+        //
+        //     int levelWidth, levelHeight;
+        //     do {
+        //         levelWidth = Math.max(1, width >> level);
+        //         levelHeight = Math.max(1, height >> level);
+        //         mipMaps[level] = loadTexture(stream, width, height, textureInfo.pixelBytes(), hasInterlacing(tag));
+        //     } while (levelWidth > 1 || levelHeight > 1);
+        // }
     }
 
     @Override
@@ -112,6 +127,10 @@ public class SWFTexture implements Savable {
 
     public Tag getTag() {
         return tag;
+    }
+
+    public Tag getInitialTag() {
+        return initialTag;
     }
 
     public int getType() {
