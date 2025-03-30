@@ -52,6 +52,7 @@ public class SWFTexture implements Savable {
 
         textureInfo = TextureInfo.getTextureInfoByType(type);
         this.tag = determineTag();
+        this.initialTag = tag;
     }
 
     private static boolean hasInterlacing(Tag tag) {
