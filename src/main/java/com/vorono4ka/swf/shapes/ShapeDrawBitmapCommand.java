@@ -23,9 +23,15 @@ public class ShapeDrawBitmapCommand implements Savable {
     private IntFunction<int[]> triangulator;
     private int[] indices;
 
+    /**
+     * @since 1.0.0
+     */
     public ShapeDrawBitmapCommand() {
     }
 
+    /**
+     * @since 1.0.0
+     */
     public ShapeDrawBitmapCommand(FBShapeDrawBitmapCommand fb, FBResources resources) {
 //        unk = fb.unknown0();
         textureIndex = fb.textureIndex();
@@ -41,6 +47,9 @@ public class ShapeDrawBitmapCommand implements Savable {
         this.tag = determineTag();
     }
 
+    /**
+     * @since 1.0.0
+     */
     public void load(ByteStream stream, Tag tag) {
         this.tag = tag;
 
@@ -76,6 +85,9 @@ public class ShapeDrawBitmapCommand implements Savable {
         }
     }
 
+    /**
+     * @since 1.0.0
+     */
     public void save(ByteStream stream) {
         stream.writeUnsignedChar(this.textureIndex);
 
@@ -94,14 +106,23 @@ public class ShapeDrawBitmapCommand implements Savable {
         }
     }
 
+    /**
+     * @since 1.0.0
+     */
     public float getX(int pointIndex) {
         return this.shapePoints[pointIndex].getX();
     }
 
+    /**
+     * @since 1.0.0
+     */
     public float getY(int pointIndex) {
         return this.shapePoints[pointIndex].getY();
     }
 
+    /**
+     * @since 1.0.0
+     */
     public void setXY(int pointIndex, float x, float y) {
         ShapePoint point = this.shapePoints[pointIndex];
 
@@ -109,14 +130,23 @@ public class ShapeDrawBitmapCommand implements Savable {
         point.setY(y);
     }
 
+    /**
+     * @since 1.0.0
+     */
     public float getU(int pointIndex) {
         return this.shapePoints[pointIndex].getU() / 65535f;
     }
 
+    /**
+     * @since 1.0.0
+     */
     public float getV(int pointIndex) {
         return this.shapePoints[pointIndex].getV() / 65535f;
     }
 
+    /**
+     * @since 1.0.0
+     */
     public void setUV(int pointIndex, float u, float v) {
         ShapePoint point = this.shapePoints[pointIndex];
 
@@ -124,26 +154,56 @@ public class ShapeDrawBitmapCommand implements Savable {
         point.setV((int) (v * 65535f));
     }
 
+    // TODO: add methods for adding points to the polygon.
+
+    /**
+     * @since 1.0.0
+     */
     public Tag getTag() {
         return tag;
     }
 
+    /**
+     * @since 1.0.0
+     */
     public int getTextureIndex() {
         return textureIndex;
     }
 
+    /**
+     * Sets the index of the texture in {@link com.vorono4ka.swf.SupercellSWF SupercellSWF} object to be drawn from.
+     *
+     * @param textureIndex texture index
+     * @since 1.0.7
+     */
+    public void setTextureIndex(int textureIndex) {
+        this.textureIndex = textureIndex;
+    }
+
+    /**
+     * @since 1.0.0
+     */
     public int getVertexCount() {
         return shapePoints.length;
     }
 
+    /**
+     * @since 1.0.0
+     */
     public int getTriangleCount() {
         return this.getVertexCount() - 2;
     }
 
+    /**
+     * @since 1.0.0
+     */
     public void setTriangulator(IntFunction<int[]> triangulator) {
         this.triangulator = triangulator;
     }
 
+    /**
+     * @since 1.0.0
+     */
     public int[] getIndices() {
         if (indices != null) {
             return indices;

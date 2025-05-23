@@ -176,7 +176,7 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
                 }
                 case SCALING_GRID -> {
                     if (this.scalingGrid != null) {
-                        throw new LoadingFaultException("multiple scaling grids");
+                        throw new LoadingFaultException("multiple scaling grids, id=" + this.id);
                     }
 
                     float left = stream.readTwip();
@@ -344,37 +344,40 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         List<Savable> savableObjects = new ArrayList<>(this.frames);
 
         if (this.scalingGrid != null) {
-            Savable scalingGridObject = new Savable() {
-                @Override
-                public void save(ByteStream stream) {
-                    stream.writeTwip(scalingGrid.getLeft());
-                    stream.writeTwip(scalingGrid.getTop());
-                    stream.writeTwip(scalingGrid.getWidth());
-                    stream.writeTwip(scalingGrid.getHeight());
-                }
-
-                @Override
-                public Tag getTag() {
-                    return Tag.SCALING_GRID;
-                }
-            };
-            savableObjects.add(scalingGridObject);
+            savableObjects.add(new ScalingGridObject(scalingGrid));
         }
 
         if (this.matrixBankIndex != 0) {
-            Savable matrixBankIndexObject = new Savable() {
-                @Override
-                public void save(ByteStream stream) {
-                    stream.writeUnsignedChar(matrixBankIndex);
-                }
-
-                @Override
-                public Tag getTag() {
-                    return Tag.MATRIX_BANK_INDEX;
-                }
-            };
-            savableObjects.add(matrixBankIndexObject);
+            savableObjects.add(new MatrixBankIndexObject(matrixBankIndex));
         }
+
         return savableObjects;
+    }
+
+    private record MatrixBankIndexObject(short matrixBankIndex) implements Savable {
+        @Override
+        public void save(ByteStream stream) {
+            stream.writeUnsignedChar(matrixBankIndex);
+        }
+
+        @Override
+        public Tag getTag() {
+            return Tag.MATRIX_BANK_INDEX;
+        }
+    }
+
+    private record ScalingGridObject(Rect scalingGrid) implements Savable {
+        @Override
+        public void save(ByteStream stream) {
+            stream.writeTwip(scalingGrid.getLeft());
+            stream.writeTwip(scalingGrid.getTop());
+            stream.writeTwip(scalingGrid.getWidth());
+            stream.writeTwip(scalingGrid.getHeight());
+        }
+
+        @Override
+        public Tag getTag() {
+            return Tag.SCALING_GRID;
+        }
     }
 }
