@@ -9,6 +9,8 @@ import com.vorono4ka.swf.TextureType;
 import com.vorono4ka.swf.exceptions.LoadingFaultException;
 import com.vorono4ka.utilities.BufferUtils;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -237,146 +239,93 @@ public class SWFTexture implements Savable {
     }
 
     private Buffer loadTextureAsChar(ByteStream stream, int width, int height, boolean separatedByTiles) {
+        byte[] pixels = stream.readByteArray(width * height);
+
         if (separatedByTiles) {
-            ByteBuffer pixels = BufferUtils.allocateDirect(width * height);
-
-            loadInterlacedTexture(stream, width, height, this::readTileAsChar, (index, value) -> pixels.put(index, (byte) value));
-
-            return pixels;
-        } else {
-            return BufferUtils.wrapDirect(stream.readByteArray(width * height));
+            interlaceTexture(width, height, pixels.clone(), pixels, true);
         }
+
+        return BufferUtils.wrapDirect(pixels);
     }
 
     /**
      * @since 1.0.7
      */
     private void saveTextureAsChar(ByteStream stream, int width, int height, boolean separatedByTiles) {
-        ByteBuffer byteBuffer = (ByteBuffer) pixels;
+        byte[] pixels = BufferUtils.toArray((ByteBuffer) this.pixels);
 
         if (separatedByTiles) {
-            saveInterlacedTexture(stream, width, height, ByteStream::writeByteArray, byteBuffer::get);
-        } else {
-            stream.writeByteArray(BufferUtils.toArray(byteBuffer));
+            interlaceTexture(width, height, pixels.clone(), pixels, false);
         }
+
+        stream.writeByteArray(pixels);
     }
 
     private Buffer loadTextureAsShort(ByteStream stream, int width, int height, boolean separatedByTiles) {
+        short[] pixels = stream.readShortArray(width * height);
+
         if (separatedByTiles) {
-            ShortBuffer pixels = BufferUtils.allocateDirect(width * height * Short.BYTES).asShortBuffer();
-
-            loadInterlacedTexture(stream, width, height, this::readTileAsShort, (index, value) -> pixels.put(index, (short) value));
-
-            return pixels;
-        } else {
-            return BufferUtils.wrapDirect(stream.readShortArray(width * height));
+            interlaceTexture(width, height, pixels.clone(), pixels, true);
         }
+
+        return BufferUtils.wrapDirect(pixels);
     }
 
     /**
      * @since 1.0.7
      */
     private void saveTextureAsShort(ByteStream stream, int width, int height, boolean separatedByTiles) {
-        ShortBuffer shortBuffer = (ShortBuffer) pixels;
+        short[] pixels = BufferUtils.toArray((ShortBuffer) this.pixels);
 
         if (separatedByTiles) {
-            saveInterlacedTexture(stream, width, height, ByteStream::writeShortArray, shortBuffer::get);
-        } else {
-            stream.writeShortArray(BufferUtils.toArray(shortBuffer));
+            interlaceTexture(width, height, pixels.clone(), pixels, false);
         }
+
+        stream.writeShortArray(pixels);
     }
 
     private Buffer loadTextureAsInt(ByteStream stream, int width, int height, boolean separatedByTiles) {
+        int[] pixels = stream.readIntArray(width * height);
+
         if (separatedByTiles) {
-            IntBuffer pixels = BufferUtils.allocateDirect(width * height * Integer.BYTES).asIntBuffer();
-
-            loadInterlacedTexture(stream, width, height, this::readTileAsInt, pixels::put);
-
-            return pixels;
-        } else {
-            return BufferUtils.wrapDirect(stream.readIntArray(width * height));
+            interlaceTexture(width, height, pixels.clone(), pixels, true);
         }
+
+        return BufferUtils.wrapDirect(pixels);
     }
 
     /**
      * @since 1.0.7
      */
     private void saveTextureAsInt(ByteStream stream, int width, int height, boolean separatedByTiles) {
-        IntBuffer intBuffer = (IntBuffer) pixels;
+        int[] pixels = BufferUtils.toArray((IntBuffer) this.pixels);
 
         if (separatedByTiles) {
-            saveInterlacedTexture(stream, width, height, ByteStream::writeIntArray, intBuffer::get);
-        } else {
-            stream.writeIntArray(BufferUtils.toArray(intBuffer));
-        }
-    }
-
-    private int[] readTileAsChar(ByteStream stream, int width, int height) {
-        byte[] tile = stream.readByteArray(width * height);
-
-        int[] ints = new int[tile.length];
-        for (int i = 0; i < tile.length; i++) {
-            ints[i] = tile[i];
+            interlaceTexture(width, height, pixels.clone(), pixels, false);
         }
 
-        return ints;
-    }
-
-    private int[] readTileAsShort(ByteStream stream, int width, int height) {
-        short[] tile = stream.readShortArray(width * height);
-
-        int[] ints = new int[tile.length];
-        for (int i = 0; i < tile.length; i++) {
-            ints[i] = tile[i];
-        }
-
-        return ints;
-    }
-
-    private int[] readTileAsInt(ByteStream stream, int width, int height) {
-        return stream.readIntArray(width * height);
-    }
-
-    private void loadInterlacedTexture(ByteStream stream, int width, int height, TileReader tileReader, IntBiConsumer pixelConsumer) {
-        int xTileCount = width / TILE_SIZE;
-        int yTileCount = height / TILE_SIZE;
-
-        for (int tileY = 0; tileY < yTileCount + 1; tileY++) {
-            for (int tileX = 0; tileX < xTileCount + 1; tileX++) {
-                int tileWidth = Math.min(width - (tileX * TILE_SIZE), TILE_SIZE);
-                int tileHeight = Math.min(height - (tileY * TILE_SIZE), TILE_SIZE);
-
-                int[] tilePixels = tileReader.readTile(stream, tileWidth, tileHeight);
-
-                for (int y = 0; y < tileHeight; y++) {
-                    int pixelY = (tileY * TILE_SIZE) + y;
-
-                    for (int x = 0; x < tileWidth; x++) {
-                        int pixelX = (tileX * TILE_SIZE) + x;
-
-                        int index = pixelY * width + pixelX;
-                        int tilePixelIndex = y * tileWidth + x;
-                        int tilePixel = tilePixels[tilePixelIndex];
-                        pixelConsumer.accept(index, tilePixel);
-                    }
-                }
-            }
-        }
+        stream.writeIntArray(pixels);
     }
 
     /**
      * @since 1.0.7
      */
-    private void saveInterlacedTexture(ByteStream stream, int width, int height, TileWriter tileWriter, PixelSupplier pixelSupplier) {
+    private void interlaceTexture(int width, int height, Object srcArray, Object dstArray, boolean reverseIndex) {
+        if (srcArray.getClass() != dstArray.getClass()) {
+            throw new IllegalArgumentException("srcArray and dstArray must be of type " + srcArray.getClass());
+        }
+
+        VarHandle arrayElementHandle = MethodHandles.arrayElementVarHandle(dstArray.getClass());
+
         int xTileCount = width / TILE_SIZE;
         int yTileCount = height / TILE_SIZE;
+
+        int offset = 0;
 
         for (int tileY = 0; tileY < yTileCount + 1; tileY++) {
             for (int tileX = 0; tileX < xTileCount + 1; tileX++) {
                 int tileWidth = Math.min(width - (tileX * TILE_SIZE), TILE_SIZE);
                 int tileHeight = Math.min(height - (tileY * TILE_SIZE), TILE_SIZE);
-
-                int[] tilePixels = new int[tileWidth * tileHeight];
 
                 for (int y = 0; y < tileHeight; y++) {
                     int pixelY = (tileY * TILE_SIZE) + y;
@@ -385,12 +334,17 @@ public class SWFTexture implements Savable {
                         int pixelX = (tileX * TILE_SIZE) + x;
 
                         int index = pixelY * width + pixelX;
-                        int tilePixelIndex = y * tileWidth + x;
-                        tilePixels[tilePixelIndex] = pixelSupplier.getPixel(index);
+                        int tilePixelIndex = y * tileWidth + x + offset;
+
+                        if (reverseIndex) {
+                            arrayElementHandle.set(dstArray, index, arrayElementHandle.get(srcArray, tilePixelIndex));
+                        } else {
+                            arrayElementHandle.set(dstArray, tilePixelIndex, arrayElementHandle.get(srcArray, index));
+                        }
                     }
                 }
 
-                tileWriter.writeTile(stream, tilePixels);
+                offset += tileWidth * tileHeight;
             }
         }
     }
@@ -412,25 +366,5 @@ public class SWFTexture implements Savable {
      */
     public void setHasTexture(boolean hasTexture) {
         this.hasTexture = hasTexture;
-    }
-
-    @FunctionalInterface
-    private interface TileReader {
-        int[] readTile(ByteStream stream, int tileWidth, int tileHeight);
-    }
-
-    @FunctionalInterface
-    private interface TileWriter {
-        void writeTile(ByteStream stream, int[] data);
-    }
-
-    @FunctionalInterface
-    private interface IntBiConsumer {
-        void accept(int a, int b);
-    }
-
-    @FunctionalInterface
-    private interface PixelSupplier {
-        int getPixel(int index);
     }
 }
