@@ -99,6 +99,36 @@ public class ByteStream {
         this.write(stringBytes);
     }
 
+    public void writeByteArray(byte[] array) {
+        for (byte value : array) {
+            this.writeUnsignedChar(value);
+        }
+    }
+
+    public void writeByteArray(int[] array) {
+        for (int value : array) {
+            this.writeUnsignedChar(value);
+        }
+    }
+
+    public void writeShortArray(short[] array) {
+        for (short value : array) {
+            this.writeShort(value);
+        }
+    }
+
+    public void writeShortArray(int[] array) {
+        for (int value : array) {
+            this.writeShort(value);
+        }
+    }
+
+    public void writeIntArray(int[] array) {
+        for (int value : array) {
+            this.writeInt(value);
+        }
+    }
+
     public void writeSavable(Savable object) {
         this.writeBlock(object.getTag(), object::save);
     }

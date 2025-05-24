@@ -34,6 +34,9 @@ public class SupercellSWF {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SupercellSWF.class);
 
+    private static final String DEFAULT_HIGHRES_SUFFIX = "_highres";
+    private static final String DEFAULT_LOWRES_SUFFIX = "_lowres";
+
     private final List<String> fontsNames = new ArrayList<>();
     private final List<ScMatrixBank> matrixBanks = new ArrayList<>();
 
@@ -46,9 +49,12 @@ public class SupercellSWF {
 
     private List<MovieClipModifierOriginal> movieClipModifiers;
 
+    // TODO: half-scale
     private boolean isHalfScalePossible;
-    private boolean useUncommonResolution;
     private boolean useExternalTexture;
+    private boolean useUncommonResolution;
+    private String highresSuffix = DEFAULT_HIGHRES_SUFFIX;
+    private String lowresSuffix = DEFAULT_LOWRES_SUFFIX;
     private String uncommonResolutionTexturePath;
 
     private String filename;
@@ -76,21 +82,19 @@ public class SupercellSWF {
         if (this.loadInternal(filepath, false, preferLowres)) {
             if (!this.useExternalTexture) return true;
 
-            if (this.useUncommonResolution) {
-                filepath = this.uncommonResolutionTexturePath;
-            } else {
-                filepath = filepath.substring(0, filepath.length() - 3) + TEXTURE_EXTENSION;
-            }
-
-            return this.loadInternal(filepath, true, preferLowres);
+            return this.loadInternal(getTextureFilepath(filepath), true, preferLowres);
         }
 
         return false;
     }
 
-    public void save(String path, ProgressTracker tracker) {
-        this.saveInternal(path, false, tracker);
-        // Add an option "Save textures as external files" when saving the whole project
+    public void save(String filepath, ProgressTracker tracker) {
+        this.saveInternal(filepath, !this.useExternalTexture, tracker);
+
+        // TODO: Add an option "Save textures as external files" when saving the whole project
+        if (this.useExternalTexture) {
+            this.saveInternal(getTextureFilepath(filepath), true, tracker);
+        }
     }
 
     public MovieClipOriginal getOriginalMovieClip(int id, String name) throws UnableToFindObjectException {
@@ -207,17 +211,116 @@ public class SupercellSWF {
 
     /**
      * @return path, containing a filename
+     * @since 1.0.0
      */
     public Path getPath() {
         return path;
     }
 
+    /**
+     * @return filename of loaded info file.
+     * @since 1.0.0
+     */
     public String getFilename() {
         return filename;
     }
 
+    /**
+     * Returns whether external textures saving is enabled.
+     *
+     * @since 1.0.7
+     */
+    public boolean isUseExternalTexture() {
+        return useExternalTexture;
+    }
+
+    /**
+     * Enables or disables saving the textures using an external files.
+     *
+     * <p>This only affects how the file is saved and does not alter file reading behavior.</p>
+     *
+     * <p><strong>Warning:</strong> Set this flag only if you understand the file format requirements.
+     * Incorrect use may result in files that cannot be saved correctly.</p>
+     *
+     * @since 1.0.7
+     */
+    public void setUseExternalTexture(boolean useExternalTexture) {
+        this.useExternalTexture = useExternalTexture;
+    }
+
+
+    /**
+     * Returns whether half-resolution textures is allowed.
+     *
+     * <p>This only affects how the file is saved and does not alter file reading behavior.</p>
+     *
+     * @since 1.0.7
+     */
     public boolean isHalfScalePossible() {
         return isHalfScalePossible;
+    }
+
+
+    /**
+     * Enables or disables saving the texture at half resolution.
+     *
+     * <p>This only affects how the file is saved and does not alter file reading behavior.</p>
+     *
+     * <p><strong>Warning:</strong> Use this only if the format supports half-resolution storage.
+     * Otherwise, the saved file may be invalid.</p>
+     *
+     * @since 1.0.7
+     */
+    public void setHalfScalePossible(boolean halfScalePossible) {
+        isHalfScalePossible = halfScalePossible;
+    }
+
+    /**
+     * Returns whether textures are split into high-resolution and low-resolution texture files.
+     *
+     * @since 1.0.7
+     */
+    public boolean isUseUncommonResolution() {
+        return useUncommonResolution;
+    }
+
+    /**
+     * Sets whether to split textures into high-resolution and low-resolution texture files.
+     *
+     * <p>Currently, the library supports saving only textures resolutions from read files. </p>
+     *
+     * <p><strong>Warning:</strong> This method is intended to affect file saving behavior,
+     * but currently has no effect, as its saving logic is not yet implemented. </p>
+     *
+     * <p><strong>Warning:</strong> It does not alter file reading behavior. </p>
+     *
+     * @since 1.0.7
+     */
+    public void setUseUncommonResolution(boolean useUncommonResolution) {
+        this.useUncommonResolution = useUncommonResolution;
+    }
+
+    /**
+     * <strong>Warning:</strong> This method is intended to affect file saving behavior, but currently has no effect,
+     * as its saving logic is not yet implemented. It does not alter file reading behavior.
+     *
+     * @since 1.0.7
+     */
+    public void setExternalFileSuffixes(String highresSuffix, String lowresSuffix) {
+        if (!this.useExternalTexture) {
+            throw new IllegalStateException("Cannot use external texture suffixes when using internal texture");
+        }
+
+        this.highresSuffix = highresSuffix;
+        this.lowresSuffix = lowresSuffix;
+    }
+
+    public String getTextureFilepath(String filepath) {
+        if (this.useUncommonResolution) {
+            return this.uncommonResolutionTexturePath;
+        }
+
+        return filepath.substring(0, filepath.length() - 3) + TEXTURE_EXTENSION;
     }
 
     public List<ShapeDrawBitmapCommand> getDrawBitmapsOfTexture(int textureIndex) {
@@ -244,6 +347,7 @@ public class SupercellSWF {
             } catch (IOException e) {
                 throw new TextureFileNotFound(path);
             }
+
             ScFileInfo unpacked = ScFileUnpacker.unpack(data);
             byte[] decompressedData = unpacked.data();
 
@@ -357,8 +461,8 @@ public class SupercellSWF {
     }
 
     private boolean loadTags(ByteStream stream, boolean isTextureFile, String path) throws LoadingFaultException, UnsupportedCustomPropertyException {
-        String highresSuffix = "_highres";
-        String lowresSuffix = "_lowres";
+        highresSuffix = DEFAULT_HIGHRES_SUFFIX;
+        lowresSuffix = DEFAULT_LOWRES_SUFFIX;
 
         ScMatrixBank matrixBank = this.matrixBanks.get(0);
 
@@ -536,7 +640,7 @@ public class SupercellSWF {
             saveObjectsInfo(stream);
         }
 
-        this.saveTags(stream, tracker);
+        this.saveTags(stream, isTextureFile, tracker);
 
         byte[] data = stream.getData();
 
@@ -575,8 +679,8 @@ public class SupercellSWF {
         }
     }
 
-    private void saveTags(ByteStream stream, ProgressTracker tracker) {
-        List<Savable> savables = this.getSavableObjects();
+    private void saveTags(ByteStream stream, boolean isTextureFile, ProgressTracker tracker) {
+        List<Savable> savables = this.getSavableObjects(isTextureFile);
 
         int i = 0;
         for (Savable object : savables) {
@@ -589,76 +693,49 @@ public class SupercellSWF {
         stream.writeBlock(Tag.EOF, null);
     }
 
-    private List<Savable> getSavableObjects() {
+    private List<Savable> getSavableObjects(boolean isTextureFile) {
         List<Savable> objects = new ArrayList<>();
 
-        if (this.isHalfScalePossible) {
-            objects.add(new Savable() {
-                @Override
-                public void save(ByteStream stream) {
+        if (!isTextureFile) {
+            if (this.isHalfScalePossible) {
+                objects.add(new FlagSavable(Tag.HALF_SCALE_POSSIBLE));
+            }
 
-                }
+            if (this.useExternalTexture) {
+                objects.add(new FlagSavable(Tag.USE_EXTERNAL_TEXTURE));
 
-                @Override
-                public Tag getTag() {
-                    return Tag.HALF_SCALE_POSSIBLE;
+                if (!this.highresSuffix.equals(DEFAULT_HIGHRES_SUFFIX) || !this.lowresSuffix.equals(DEFAULT_LOWRES_SUFFIX)) {
+                    objects.add(new ExternalFilesSuffixesSavable(this.highresSuffix, this.lowresSuffix));
                 }
-            });
+            }
         }
 
-        if (this.useExternalTexture) {
-            objects.add(new Savable() {
-                @Override
-                public void save(ByteStream stream) {
-
-                }
-
-                @Override
-                public Tag getTag() {
-                    return Tag.USE_EXTERNAL_TEXTURE;
-                }
-            });
-        }
+        this.textures.forEach(texture -> texture.setHasTexture(isTextureFile));
 
         objects.addAll(this.textures);
+
+        if (isTextureFile) {
+            return objects;
+        }
+
         objects.addAll(this.shapes);
+
         for (int i = 0; i < this.matrixBanks.size(); i++) {
             ScMatrixBank matrixBank = this.matrixBanks.get(i);
 
             if (i != 0) {
-                objects.add(new Savable() {
-                    @Override
-                    public void save(ByteStream stream) {
-                        stream.writeShort(matrixBank.getMatrixCount());
-                        stream.writeShort(matrixBank.getColorTransformCount());
-                    }
-
-                    @Override
-                    public Tag getTag() {
-                        return Tag.EXTRA_MATRIX_BANK;
-                    }
-                });
+                objects.add(new ExtraMatrixBankInfo(matrixBank));
             }
 
             objects.addAll(matrixBank.getMatrices());
             objects.addAll(matrixBank.getColorTransforms());
         }
+
         objects.addAll(this.textFields);
         objects.addAll(this.movieClips);
 
         if (this.movieClipModifiers != null && !this.movieClipModifiers.isEmpty()) {
-            objects.add(new Savable() {
-                @Override
-                public void save(ByteStream stream) {
-                    stream.writeShort(movieClipModifiers.size());
-                }
-
-                @Override
-                public Tag getTag() {
-                    return Tag.MOVIE_CLIP_MODIFIERS;
-                }
-            });
-
+            objects.add(new MovieClipModifiersInfo(this.movieClipModifiers));
             objects.addAll(this.movieClipModifiers);
         }
 
@@ -699,5 +776,58 @@ public class SupercellSWF {
         }
 
         return nextId;
+    }
+
+    private record ExtraMatrixBankInfo(ScMatrixBank matrixBank) implements Savable {
+        @Override
+        public void save(ByteStream stream) {
+            stream.writeShort(matrixBank.getMatrixCount());
+            stream.writeShort(matrixBank.getColorTransformCount());
+        }
+
+        @Override
+        public Tag getTag() {
+            return Tag.EXTRA_MATRIX_BANK;
+        }
+    }
+
+    private record MovieClipModifiersInfo(
+        List<MovieClipModifierOriginal> movieClipModifiers
+    ) implements Savable {
+        @Override
+        public void save(ByteStream stream) {
+            stream.writeShort(movieClipModifiers.size());
+        }
+
+        @Override
+        public Tag getTag() {
+            return Tag.MOVIE_CLIP_MODIFIERS;
+        }
+    }
+
+    private record FlagSavable(Tag tag) implements Savable {
+        @Override
+        public void save(ByteStream stream) {
+
+        }
+
+        @Override
+        public Tag getTag() {
+            return tag;
+        }
+    }
+
+    private record ExternalFilesSuffixesSavable(String highresSuffix,
+                                                String lowresSuffix) implements Savable {
+        @Override
+        public void save(ByteStream stream) {
+            stream.writeAscii(highresSuffix);
+            stream.writeAscii(lowresSuffix);
+        }
+
+        @Override
+        public Tag getTag() {
+            return Tag.EXTERNAL_FILES_SUFFIXES;
+        }
     }
 }
