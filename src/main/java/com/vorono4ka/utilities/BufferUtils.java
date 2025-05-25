@@ -7,6 +7,33 @@ public final class BufferUtils {
     public static final ByteOrder NATIVE_ORDER = ByteOrder.nativeOrder();
 
     /**
+     * Calculates buffer byte capacity.
+     *
+     * @param buffer buffer
+     * @return capacity in bytes
+     * @since 1.0.9
+     */
+    public static int getByteCapacity(Buffer buffer) {
+        if (buffer instanceof ByteBuffer) {
+            return buffer.capacity(); // 1 byte per element
+        } else if (buffer instanceof ShortBuffer) {
+            return buffer.capacity() * Short.BYTES;
+        } else if (buffer instanceof CharBuffer) {
+            return buffer.capacity() * Character.BYTES;
+        } else if (buffer instanceof IntBuffer) {
+            return buffer.capacity() * Integer.BYTES;
+        } else if (buffer instanceof FloatBuffer) {
+            return buffer.capacity() * Float.BYTES;
+        } else if (buffer instanceof LongBuffer) {
+            return buffer.capacity() * Long.BYTES;
+        } else if (buffer instanceof DoubleBuffer) {
+            return buffer.capacity() * Double.BYTES;
+        } else {
+            throw new IllegalArgumentException("Unsupported buffer type: " + buffer.getClass());
+        }
+    }
+
+    /**
      * @since 1.0.0
      * */
     public static byte[] toArray(ByteBuffer buffer) {

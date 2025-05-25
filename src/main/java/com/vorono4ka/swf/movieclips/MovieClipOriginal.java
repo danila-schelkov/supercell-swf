@@ -26,14 +26,14 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
     private Tag tag;
 
     private String exportName;
-    private byte fps;
+    private int fps;
     /**
      * By default, true in the game.
      */
     private boolean customPropertyBoolean = true;
-    private List<MovieClipChild> children = new ArrayList<>();
+    private List<MovieClipChild> children;
     private List<MovieClipFrame> frames;
-    private short matrixBankIndex;
+    private int matrixBankIndex;
     private Rect scalingGrid;
 
     private DisplayObjectOriginal[] timelineChildren;
@@ -43,11 +43,11 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
     public MovieClipOriginal(FBMovieClip fb, FBResources resources) {
         id = fb.id();
         exportName = fb.exportNameRefId() != 0 ? resources.strings(fb.exportNameRefId()) : null;
-        fps = (byte) fb.fps();
+        fps = fb.fps();
         customPropertyBoolean = fb.property() != 0;
         children = new ArrayList<>(fb.childIdsLength());
         for (int i = 0; i < fb.childIdsLength(); i++) {
-            children.add(new MovieClipChild(fb.childIds(i), (byte) fb.childBlends(i), fb.childNameRefIdsLength() != 0 ? resources.strings(fb.childNameRefIds(i)) : null));
+            children.add(new MovieClipChild(fb.childIds(i), fb.childBlends(i), fb.childNameRefIdsLength() != 0 ? resources.strings(fb.childNameRefIds(i)) : null));
         }
         frames = new ArrayList<>(fb.framesLength());
         int frameElementOffset = fb.frameElementOffset() / 3;
@@ -66,7 +66,7 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
                 frames.add(frame);
             }
         }
-        matrixBankIndex = (short) fb.matrixBankIndex();
+        matrixBankIndex = fb.matrixBankIndex();
         int scalingGridIndex = fb.scalingGridIndex();
         if (scalingGridIndex != -1) {
             scalingGrid = new Rect(resources.scalingGrids(scalingGridIndex));
@@ -75,11 +75,25 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         tag = determineTag();
     }
 
+    public MovieClipOriginal(List<MovieClipChild> children, List<MovieClipFrame> frames, int fps, int matrixBankIndex, Rect scalingGrid, boolean customPropertyBoolean) {
+        validateFps(fps);
+        validateMatrixBankIndex(matrixBankIndex);
+
+        this.children = new ArrayList<>(children);
+        this.frames = new ArrayList<>(frames);
+        this.fps = fps;
+        this.matrixBankIndex = matrixBankIndex;
+        this.scalingGrid = scalingGrid;
+        this.customPropertyBoolean = customPropertyBoolean;
+
+        this.tag = determineTag();
+    }
+
     public int load(ByteStream stream, Tag tag, String filename) throws LoadingFaultException, UnsupportedCustomPropertyException {
         this.tag = tag;
 
         this.id = stream.readShort();
-        this.fps = (byte) stream.readUnsignedChar();
+        this.fps = stream.readUnsignedChar();
         // *(a1 + 54) = *(a1 + 54) & 0xFF80 | ZN12SupercellSWF16readUnsignedCharEv(a2) & 0x7F;
 
         int frameCount = stream.readShort();
@@ -135,6 +149,7 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
             childNames[i] = stream.readAscii();
         }
 
+        children = new ArrayList<>(childCount);
         for (int i = 0; i < childCount; i++) {
             children.add(new MovieClipChild(childIds[i], childBlends[i], childNames[i]));
         }
@@ -188,9 +203,8 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
 
                     this.scalingGrid = new Rect(left, top, right, bottom);
                 }
-                case
-                    MATRIX_BANK_INDEX -> // (a1 + 54) & 0x80FF | ((ZN12SupercellSWF16readUnsignedCharEv(a2) & 0x7F) << 8);
-                    this.matrixBankIndex = (short) stream.readUnsignedChar();
+                case MATRIX_BANK_INDEX -> // (a1 + 54) & 0x80FF | ((ZN12SupercellSWF16readUnsignedCharEv(a2) & 0x7F) << 8);
+                    this.matrixBankIndex = stream.readUnsignedChar();
                 default -> {
                     try {
                         throw new UnsupportedTagException(String.format("Unknown tag %d in MovieClip, %s", frameTag, filename));
@@ -293,6 +307,10 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         return scalingGrid;
     }
 
+    public void setScalingGrid(Rect scalingGrid) {
+        this.scalingGrid = scalingGrid;
+    }
+
     public int getMatrixBankIndex() {
         return matrixBankIndex;
     }
@@ -354,7 +372,23 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         return savableObjects;
     }
 
-    private record MatrixBankIndexObject(short matrixBankIndex) implements Savable {
+    private static void validateMatrixBankIndex(int matrixBankIndex) {
+        if (matrixBankIndex < 0 || matrixBankIndex > 255) {
+            throw new IllegalArgumentException("Matrix bank index must be between 0 and 255");
+        }
+    }
+
+    private static void validateFps(int fps) {
+        if (fps < 0 || fps > 255) {
+            throw new IllegalArgumentException("FPS must be between 0 and 255, but was " + fps);
+        }
+    }
+
+    private record MatrixBankIndexObject(int matrixBankIndex) implements Savable {
+        private MatrixBankIndexObject {
+            validateMatrixBankIndex(matrixBankIndex);
+        }
+
         @Override
         public void save(ByteStream stream) {
             stream.writeUnsignedChar(matrixBankIndex);
@@ -378,6 +412,64 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         @Override
         public Tag getTag() {
             return Tag.SCALING_GRID;
+        }
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    @SuppressWarnings("unused")
+    public static final class Builder {
+        private final List<MovieClipChild> children;
+        private final List<MovieClipFrame> frames;
+
+        private int fps;
+        private boolean customPropertyBoolean = true;
+        private int matrixBankIndex;
+        private Rect scalingGrid;
+
+        private Builder() {
+            children = new ArrayList<>();
+            frames = new ArrayList<>();
+        }
+
+        public Builder addChild(MovieClipChild child) {
+            this.children.add(child);
+            return this;
+        }
+
+        public Builder addFrame(MovieClipFrame frame) {
+            this.frames.add(frame);
+            return this;
+        }
+
+        public Builder withCustomPropertyBoolean(boolean customPropertyBoolean) {
+            this.customPropertyBoolean = customPropertyBoolean;
+            return this;
+        }
+
+        public Builder withFps(int fps) {
+            validateFps(fps);
+
+            this.fps = fps;
+            return this;
+        }
+
+        public Builder withMatrixBankIndex(int matrixBankIndex) {
+            validateMatrixBankIndex(matrixBankIndex);
+
+            this.matrixBankIndex = matrixBankIndex;
+            return this;
+        }
+
+        public Builder withScalingGrid(Rect scalingGrid) {
+            this.scalingGrid = scalingGrid;
+            return this;
+        }
+
+        public MovieClipOriginal build() {
+            return new MovieClipOriginal(children, frames, fps, matrixBankIndex, scalingGrid, customPropertyBoolean);
         }
     }
 }

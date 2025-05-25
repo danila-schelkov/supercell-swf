@@ -62,6 +62,21 @@ public class SWFTexture implements Savable {
         this.initialTag = tag;
     }
 
+    public SWFTexture(Tag tag, TextureType type, int width, int height, Buffer pixelBuffer) {
+        this.tag = tag;
+        this.type = type;
+        this.width = width;
+        this.height = height;
+
+        if (pixelBuffer == null) {
+            throw new NullPointerException("pixelBuffer must be set");
+        }
+
+        validatePixelBuffer(pixelBuffer, width, height, type);
+
+        this.pixels = pixelBuffer;
+    }
+
     private static boolean hasInterlacing(Tag tag) {
         return tag == Tag.TEXTURE_5 || tag == Tag.TEXTURE_6 || tag == Tag.TEXTURE_7;
     }
@@ -222,7 +237,8 @@ public class SWFTexture implements Savable {
             case 1 -> loadTextureAsChar(stream, width, height, hasInterlacing);
             case 2 -> loadTextureAsShort(stream, width, height, hasInterlacing);
             case 4 -> loadTextureAsInt(stream, width, height, hasInterlacing);
-            default -> throw new IllegalStateException("Unexpected value: " + pixelBytes);
+            default ->
+                throw new IllegalStateException("Unexpected value: " + pixelBytes);
         };
     }
 
@@ -234,7 +250,8 @@ public class SWFTexture implements Savable {
             case 1 -> saveTextureAsChar(stream, width, height, hasInterlacing);
             case 2 -> saveTextureAsShort(stream, width, height, hasInterlacing);
             case 4 -> saveTextureAsInt(stream, width, height, hasInterlacing);
-            default -> throw new IllegalStateException("Unexpected value: " + pixelBytes);
+            default ->
+                throw new IllegalStateException("Unexpected value: " + pixelBytes);
         }
     }
 
@@ -366,5 +383,67 @@ public class SWFTexture implements Savable {
      */
     public void setHasTexture(boolean hasTexture) {
         this.hasTexture = hasTexture;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    @SuppressWarnings("unused")
+    public static final class Builder {
+        private Tag tag;
+        private TextureType type;
+        private int width = -1, height = -1;
+        private Buffer pixelBuffer;
+
+        private Builder() {
+        }
+
+        public Builder tag(Tag tag) {
+            // TODO: validate whether it is texture tag
+            this.tag = tag;
+            return this;
+        }
+
+        public Builder type(TextureType type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder width(int width) {
+            this.width = width;
+            return this;
+        }
+
+        public Builder height(int height) {
+            this.height = height;
+            return this;
+        }
+
+        public Builder pixels(Buffer pixelBuffer) {
+            validatePixelBuffer(pixelBuffer, this.width, this.height, this.type);
+
+            this.pixelBuffer = pixelBuffer;
+            return this;
+        }
+
+        public SWFTexture build() {
+            return new SWFTexture(tag, type, width, height, pixelBuffer);
+        }
+    }
+
+    private static void validatePixelBuffer(Buffer pixelBuffer, int width, int height, TextureType type) {
+        if (pixelBuffer == null) {
+            return;
+        }
+
+        if (width == -1 || height == -1 || type == null) {
+            throw new IllegalStateException("Width, height and type must be set before pixels");
+        }
+
+        int bytesExpected = width * height * type.pixelBytes;
+        if (bytesExpected != BufferUtils.getByteCapacity(pixelBuffer)) {
+            throw new IllegalStateException("Expected " + bytesExpected + " bytes but got " + pixelBuffer.capacity());
+        }
     }
 }

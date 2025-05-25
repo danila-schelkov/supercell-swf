@@ -229,11 +229,11 @@ public class Matrix2x3 implements Savable {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Matrix2x3 matrix2x3 = (Matrix2x3) o;
-        return Float.compare(a, matrix2x3.a) == 0 && Float.compare(b, matrix2x3.b) == 0 && Float.compare(c, matrix2x3.c) == 0 && Float.compare(d, matrix2x3.d) == 0 && Float.compare(x, matrix2x3.x) == 0 && Float.compare(y, matrix2x3.y) == 0;
+    public boolean equals(Object other) {
+        if (this == other) return true;
+        if (other == null || getClass() != other.getClass()) return false;
+        Matrix2x3 matrix2x3 = (Matrix2x3) other;
+        return a == matrix2x3.a && b == matrix2x3.b && c == matrix2x3.c && d == matrix2x3.d && x == matrix2x3.x && y == matrix2x3.y;
     }
 
     @Override

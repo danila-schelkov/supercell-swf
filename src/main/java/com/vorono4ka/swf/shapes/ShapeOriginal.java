@@ -26,6 +26,12 @@ public class ShapeOriginal extends DisplayObjectOriginal {
     public ShapeOriginal() {
     }
 
+    public ShapeOriginal(List<ShapeDrawBitmapCommand> commands) {
+        this.commands = new ArrayList<>(commands);
+
+        this.tag = this.determineTag();
+    }
+
     public ShapeOriginal(FBShape fb, FBResources resources) {
         id = fb.id();
 
@@ -139,5 +145,36 @@ public class ShapeOriginal extends DisplayObjectOriginal {
         }
 
         return pointCount;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    @SuppressWarnings("unused")
+    public static final class Builder {
+        private final List<ShapeDrawBitmapCommand> commands;
+
+        private int id;
+
+        private Builder() {
+            commands = new ArrayList<>();
+        }
+
+        public Builder addCommand(ShapeDrawBitmapCommand command) {
+            commands.add(command);
+            return this;
+        }
+
+        public Builder withId(int id) {
+            this.id = id;
+            return this;
+        }
+
+        public ShapeOriginal build() {
+            ShapeOriginal shapeOriginal = new ShapeOriginal(commands);
+            shapeOriginal.id = id;
+            return shapeOriginal;
+        }
     }
 }

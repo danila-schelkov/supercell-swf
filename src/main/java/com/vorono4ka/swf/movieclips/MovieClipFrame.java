@@ -14,12 +14,18 @@ import java.util.List;
 public class MovieClipFrame implements Savable {
     private Tag tag;
 
-    private int elementCount;
     private String label;
 
     private List<MovieClipFrameElement> elements;
 
     public MovieClipFrame() {
+    }
+
+    public MovieClipFrame(String label, List<MovieClipFrameElement> elements, boolean includeElements) {
+        this.label = label;
+        this.elements = new ArrayList<>(elements);
+
+        this.tag = includeElements ? Tag.MOVIE_CLIP_FRAME : Tag.MOVIE_CLIP_FRAME_2;
     }
 
     public MovieClipFrame(FBMovieClipFrame fb, FBResources resources, int offset) {
@@ -93,5 +99,40 @@ public class MovieClipFrame implements Savable {
 
     public void setElements(List<MovieClipFrameElement> elements) {
         this.elements = elements;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    @SuppressWarnings("unused")
+    public static final class Builder {
+        private final List<MovieClipFrameElement> elements;
+
+        private String label;
+        private boolean includeElements;
+
+        private Builder() {
+            elements = new ArrayList<>();
+        }
+
+        public Builder addElement(MovieClipFrameElement element) {
+            this.elements.add(element);
+            return this;
+        }
+
+        public Builder withLabel(String label) {
+            this.label = label;
+            return this;
+        }
+
+        public Builder setIncludeElements(boolean includeElements) {
+            this.includeElements = includeElements;
+            return this;
+        }
+
+        public MovieClipFrame build() {
+            return new MovieClipFrame(label, elements, includeElements);
+        }
     }
 }
