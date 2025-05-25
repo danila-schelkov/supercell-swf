@@ -89,11 +89,11 @@ public class SupercellSWF {
     }
 
     public void save(String filepath, ProgressTracker tracker) {
-        this.saveInternal(filepath, !this.useExternalTexture, tracker);
+        this.saveInternal(filepath, true, !this.useExternalTexture, tracker);
 
         // TODO: Add an option "Save textures as external files" when saving the whole project
         if (this.useExternalTexture) {
-            this.saveInternal(getTextureFilepath(filepath), true, tracker);
+            this.saveInternal(getTextureFilepath(filepath), false, true, tracker);
         }
     }
 
@@ -633,14 +633,14 @@ public class SupercellSWF {
         return fontName;
     }
 
-    private void saveInternal(String path, boolean isTextureFile, ProgressTracker tracker) {
+    private void saveInternal(String path, boolean includeInfo, boolean includeTextures, ProgressTracker tracker) {
         ByteStream stream = new ByteStream();
 
-        if (!isTextureFile) {
+        if (includeInfo) {
             saveObjectsInfo(stream);
         }
 
-        this.saveTags(stream, isTextureFile, tracker);
+        this.saveTags(stream, includeInfo, includeTextures, tracker);
 
         byte[] data = stream.getData();
 
@@ -679,8 +679,8 @@ public class SupercellSWF {
         }
     }
 
-    private void saveTags(ByteStream stream, boolean isTextureFile, ProgressTracker tracker) {
-        List<Savable> savables = this.getSavableObjects(isTextureFile);
+    private void saveTags(ByteStream stream, boolean includeInfo, boolean includeTextures, ProgressTracker tracker) {
+        List<Savable> savables = this.getSavableObjects(includeInfo, includeTextures);
 
         int i = 0;
         for (Savable object : savables) {
@@ -693,10 +693,10 @@ public class SupercellSWF {
         stream.writeBlock(Tag.EOF, null);
     }
 
-    private List<Savable> getSavableObjects(boolean isTextureFile) {
+    private List<Savable> getSavableObjects(boolean includeInfo, boolean includeTextures) {
         List<Savable> objects = new ArrayList<>();
 
-        if (!isTextureFile) {
+        if (includeInfo) {
             if (this.isHalfScalePossible) {
                 objects.add(new FlagSavable(Tag.HALF_SCALE_POSSIBLE));
             }
@@ -710,11 +710,11 @@ public class SupercellSWF {
             }
         }
 
-        this.textures.forEach(texture -> texture.setHasTexture(isTextureFile));
+        this.textures.forEach(texture -> texture.setHasTexture(includeTextures));
 
         objects.addAll(this.textures);
 
-        if (isTextureFile) {
+        if (!includeInfo) {
             return objects;
         }
 
