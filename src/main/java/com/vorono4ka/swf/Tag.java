@@ -43,6 +43,9 @@ public enum Tag {
     TEXT_FIELD_3,
     // if TextField tag >= TEXT_FIELD_4, it has an outline
     TEXT_FIELD_4,
+    /**
+     * Fixes SHAPE_DRAW_BITMAP_COMMAND_2 UV coordinates issue.
+     */
     SHAPE_DRAW_BITMAP_COMMAND_3,
     HALF_SCALE_POSSIBLE,
     TEXTURE_4,
@@ -93,12 +96,54 @@ public enum Tag {
     MOVIE_CLIP_6,
     ;
 
+    public boolean isTexture() {
+        return this == TEXTURE || this == TEXTURE_2 || this == TEXTURE_3
+            || this == TEXTURE_4 || this == TEXTURE_5 || this == TEXTURE_6
+            || this == TEXTURE_7 || this == TEXTURE_8 || this == KHRONOS_TEXTURE
+            || this == TEXTURE_FILE_REFERENCE;
+    }
+
+    public boolean isShape() {
+        return this == SHAPE || this == SHAPE_2;
+    }
+
+    public boolean isMovieClip() {
+        return this == MOVIE_CLIP || this == MOVIE_CLIP_2 || this == MOVIE_CLIP_3
+            || this == MOVIE_CLIP_4 || this == MOVIE_CLIP_5 || this == MOVIE_CLIP_6;
+    }
+
+    public boolean isShapeDrawCommand() {
+        return isShapeDrawBitmapCommand() || this == SHAPE_DRAW_COLOR_FILL_COMMAND;
+    }
+
+    public boolean isShapeDrawBitmapCommand() {
+        return this == SHAPE_DRAW_BITMAP_COMMAND || this == SHAPE_DRAW_BITMAP_COMMAND_2 || this == SHAPE_DRAW_BITMAP_COMMAND_3;
+    }
+
+    public boolean isMovieClipFrame() {
+        return this == MOVIE_CLIP_FRAME || this == MOVIE_CLIP_FRAME_2;
+    }
+
+    public boolean isTextField() {
+        return this == TEXT_FIELD || this == TEXT_FIELD_2 || this == TEXT_FIELD_3
+            || this == TEXT_FIELD_4 || this == TEXT_FIELD_5 || this == TEXT_FIELD_6
+            || this == TEXT_FIELD_7 || this == TEXT_FIELD_8 || this == TEXT_FIELD_9;
+    }
+
+    public boolean isColorTransform() {
+        return this == COLOR_TRANSFORM;
+    }
+
+    public boolean hasInterlacing() {
+        return this == Tag.TEXTURE_5 || this == Tag.TEXTURE_6 || this == Tag.TEXTURE_7;
+    }
+
     public boolean hasBlendData() {
         return this == MOVIE_CLIP_3 || this == MOVIE_CLIP_5 || this == MOVIE_CLIP_6;
     }
 
     public boolean hasCustomProperties() {
-        return this == Tag.MOVIE_CLIP_6;
+        return this == MOVIE_CLIP_6;
     }
 
     public int getTextureFilter() {

@@ -1,4 +1,4 @@
 package com.vorono4ka.swf.movieclips;
 
-public record MovieClipChild(int id, byte blend, String name) {
+public record MovieClipChild(int id, int blend, String name) {
 }

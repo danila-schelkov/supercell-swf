@@ -10,6 +10,8 @@ import com.vorono4ka.swf.exceptions.UnsupportedTagException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.IntFunction;
 
 public class ShapeDrawBitmapCommand implements Savable {
@@ -18,7 +20,7 @@ public class ShapeDrawBitmapCommand implements Savable {
     private Tag tag;
 
     private int textureIndex;
-    private ShapePoint[] shapePoints;
+    private List<ShapePoint> shapePoints;
 
     private IntFunction<int[]> triangulator;
     private int[] indices;
@@ -30,6 +32,33 @@ public class ShapeDrawBitmapCommand implements Savable {
     }
 
     /**
+     * @since 1.0.9
+     */
+    public ShapeDrawBitmapCommand(int textureIndex, List<ShapePoint> points) {
+        if (textureIndex == -1) {
+            throw new IllegalStateException("Texture index must be set");
+        }
+
+        if (textureIndex < 0) {
+            throw new IllegalArgumentException("Texture index cannot be negative");
+        }
+
+        if (points.size() < 3) {
+            throw new IllegalArgumentException("Shape draw command must have at least 3 points!");
+        }
+
+        if (points.size() > 255) {
+            // NOTE: make flatbuffer saving and enforce user to use it for more points
+            throw new IllegalArgumentException("Too many points: " + (points.size()));
+        }
+
+        this.textureIndex = textureIndex;
+        this.shapePoints = new ArrayList<>(points);
+
+        this.tag = determineTag();
+    }
+
+    /**
      * @since 1.0.0
      */
     public ShapeDrawBitmapCommand(FBShapeDrawBitmapCommand fb, FBResources resources) {
@@ -38,10 +67,10 @@ public class ShapeDrawBitmapCommand implements Savable {
 
         int vertexCount = fb.pointCount();
 
-        shapePoints = new ShapePoint[vertexCount];
+        shapePoints = new ArrayList<>(vertexCount);
         for (int i = 0; i < vertexCount; i++) {
             FBShapePoint sbPoint = resources.shapePoints(fb.startingPointIndex() + i);
-            shapePoints[i] = new ShapePoint(sbPoint);
+            shapePoints.set(i, new ShapePoint(sbPoint));
         }
 
         this.tag = determineTag();
@@ -67,19 +96,17 @@ public class ShapeDrawBitmapCommand implements Savable {
             }
         }
 
-        this.shapePoints = new ShapePoint[vertexCount];
-        for (int i = 0; i < this.shapePoints.length; i++) {
-            this.shapePoints[i] = new ShapePoint();
+        this.shapePoints = new ArrayList<>(vertexCount);
+        for (int i = 0; i < vertexCount; i++) {
+            this.shapePoints.add(i, new ShapePoint());
         }
 
-        for (int i = 0; i < vertexCount; i++) {
-            ShapePoint shapePoint = this.shapePoints[i];
+        for (ShapePoint shapePoint : this.shapePoints) {
             shapePoint.setX(stream.readTwip());
             shapePoint.setY(stream.readTwip());
         }
 
-        for (int i = 0; i < vertexCount; i++) {
-            ShapePoint shapePoint = this.shapePoints[i];
+        for (ShapePoint shapePoint : this.shapePoints) {
             shapePoint.setU(stream.readShort());
             shapePoint.setV(stream.readShort());
         }
@@ -92,7 +119,7 @@ public class ShapeDrawBitmapCommand implements Savable {
         stream.writeUnsignedChar(this.textureIndex);
 
         if (this.getTag() != Tag.SHAPE_DRAW_BITMAP_COMMAND) {
-            stream.writeUnsignedChar(this.shapePoints.length);
+            stream.writeUnsignedChar(this.shapePoints.size());
         }
 
         for (ShapePoint point : this.shapePoints) {
@@ -110,21 +137,21 @@ public class ShapeDrawBitmapCommand implements Savable {
      * @since 1.0.0
      */
     public float getX(int pointIndex) {
-        return this.shapePoints[pointIndex].getX();
+        return this.shapePoints.get(pointIndex).getX();
     }
 
     /**
      * @since 1.0.0
      */
     public float getY(int pointIndex) {
-        return this.shapePoints[pointIndex].getY();
+        return this.shapePoints.get(pointIndex).getY();
     }
 
     /**
      * @since 1.0.0
      */
     public void setXY(int pointIndex, float x, float y) {
-        ShapePoint point = this.shapePoints[pointIndex];
+        ShapePoint point = this.shapePoints.get(pointIndex);
 
         point.setX(x);
         point.setY(y);
@@ -134,21 +161,21 @@ public class ShapeDrawBitmapCommand implements Savable {
      * @since 1.0.0
      */
     public float getU(int pointIndex) {
-        return this.shapePoints[pointIndex].getU() / 65535f;
+        return this.shapePoints.get(pointIndex).getU() / 65535f;
     }
 
     /**
      * @since 1.0.0
      */
     public float getV(int pointIndex) {
-        return this.shapePoints[pointIndex].getV() / 65535f;
+        return this.shapePoints.get(pointIndex).getV() / 65535f;
     }
 
     /**
      * @since 1.0.0
      */
     public void setUV(int pointIndex, float u, float v) {
-        ShapePoint point = this.shapePoints[pointIndex];
+        ShapePoint point = this.shapePoints.get(pointIndex);
 
         point.setU((int) (u * 65535f));
         point.setV((int) (v * 65535f));
@@ -184,7 +211,7 @@ public class ShapeDrawBitmapCommand implements Savable {
      * @since 1.0.0
      */
     public int getVertexCount() {
-        return shapePoints.length;
+        return shapePoints.size();
     }
 
     /**
@@ -215,6 +242,49 @@ public class ShapeDrawBitmapCommand implements Savable {
     private Tag determineTag() {
         // Note: determining tag due to state (data)
         boolean isQuadShapeAllowed = false;
-        return shapePoints.length == 4 && isQuadShapeAllowed ? Tag.SHAPE_DRAW_BITMAP_COMMAND : Tag.SHAPE_DRAW_BITMAP_COMMAND_3;
+        return shapePoints.size() == 4 && isQuadShapeAllowed ? Tag.SHAPE_DRAW_BITMAP_COMMAND : Tag.SHAPE_DRAW_BITMAP_COMMAND_3;
+    }
+
+    /**
+     * @since 1.0.9
+     * */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    @SuppressWarnings("unused")
+    public static final class Builder {
+        private final List<ShapePoint> points = new ArrayList<>();
+        private int textureIndex;
+
+        private Builder() {
+        }
+
+        public Builder withTextureIndex(int textureIndex) {
+            if (textureIndex == -1) {
+                throw new IllegalArgumentException("Texture index must be set");
+            }
+
+            if (textureIndex < 0) {
+                throw new IllegalArgumentException("Texture index cannot be negative");
+            }
+
+            this.textureIndex = textureIndex;
+            return this;
+        }
+
+        public Builder addPoint(ShapePoint point) {
+            if (points.size() >= 255) {
+                // NOTE: make flatbuffer saving and enforce user to use it for more points
+                throw new IllegalArgumentException("Too many points: " + (points.size()));
+            }
+
+            points.add(point);
+            return this;
+        }
+
+        public ShapeDrawBitmapCommand build() {
+            return new ShapeDrawBitmapCommand(textureIndex, this.points);
+        }
     }
 }

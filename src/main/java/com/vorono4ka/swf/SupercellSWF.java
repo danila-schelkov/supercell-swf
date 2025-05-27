@@ -162,6 +162,10 @@ public class SupercellSWF {
     }
 
     public void addTexture(SWFTexture texture) {
+        if (texture.getIndex() == -1) {
+            throw new IllegalStateException("Texture index must be set");
+        }
+
         this.textures.add(texture);
     }
 

@@ -54,6 +54,28 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
         this.tag = determineTag();
     }
 
+    private TextFieldOriginal(Builder builder) {
+        this.fontName = builder.fontName;
+        this.bounds = builder.bounds;
+        this.color = builder.color;
+        this.outlineColor = builder.outlineColor;
+        this.defaultText = builder.defaultText;
+        this.anotherText = builder.anotherText;
+        this.useDeviceFont = builder.useDeviceFont;
+        this.isOutlineEnabled = builder.isOutlineEnabled;
+        this.isBold = builder.isBold;
+        this.isItalic = builder.isItalic;
+        this.isMultiline = builder.isMultiline;
+        this.unkBoolean = builder.unkBoolean;
+        this.autoAdjustFontSize = builder.autoAdjustFontSize;
+        this.align = builder.align;
+        this.fontSize = builder.fontSize;
+        this.unk32 = builder.unk32;
+        this.bendAngle = builder.bendAngle;
+
+        this.tag = this.determineTag();
+    }
+
     public void setStyles(byte styles) {
         useDeviceFont = (styles & 0x1) != 0;
         isOutlineEnabled = (styles & 0x2) != 0;
@@ -246,5 +268,127 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
         }
 
         return tag;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    @SuppressWarnings("unused")
+    public static final class Builder {
+        private String fontName;
+
+        private ShortRect bounds;
+
+        private int color;
+        private int outlineColor;
+
+        private String defaultText;
+        private String anotherText;
+
+        private boolean useDeviceFont;
+        private boolean isOutlineEnabled;
+        private boolean isBold;
+        private boolean isItalic;
+        private boolean isMultiline;
+        private boolean unkBoolean;
+        private boolean autoAdjustFontSize;
+
+        private byte align;
+        private byte fontSize;
+
+        private int unk32;
+        private short bendAngle;
+
+        private Builder() {}
+
+        public Builder withFontName(String fontName) {
+            this.fontName = fontName;
+            return this;
+        }
+
+        public Builder withBounds(ShortRect bounds) {
+            this.bounds = bounds;
+            return this;
+        }
+
+        public Builder withColor(int color) {
+            this.color = color;
+            return this;
+        }
+
+        public Builder withOutlineColor(int outlineColor) {
+            this.outlineColor = outlineColor;
+            return this;
+        }
+
+        public Builder withDefaultText(String defaultText) {
+            this.defaultText = defaultText;
+            return this;
+        }
+
+        public Builder withAnotherText(String anotherText) {
+            this.anotherText = anotherText;
+            return this;
+        }
+
+        public Builder withUseDeviceFont(boolean useDeviceFont) {
+            this.useDeviceFont = useDeviceFont;
+            return this;
+        }
+
+        public Builder withOutlineEnabled(boolean outlineEnabled) {
+            isOutlineEnabled = outlineEnabled;
+            return this;
+        }
+
+        public Builder withBold(boolean bold) {
+            isBold = bold;
+            return this;
+        }
+
+        public Builder withItalic(boolean italic) {
+            isItalic = italic;
+            return this;
+        }
+
+        public Builder withMultiline(boolean multiline) {
+            isMultiline = multiline;
+            return this;
+        }
+
+        public Builder withUnkBoolean(boolean unkBoolean) {
+            this.unkBoolean = unkBoolean;
+            return this;
+        }
+
+        public Builder withAutoAdjustFontSize(boolean autoAdjustFontSize) {
+            this.autoAdjustFontSize = autoAdjustFontSize;
+            return this;
+        }
+
+        public Builder withAlign(byte align) {
+            this.align = align;
+            return this;
+        }
+
+        public Builder withFontSize(byte fontSize) {
+            this.fontSize = fontSize;
+            return this;
+        }
+
+        public Builder withUnk32(int unk32) {
+            this.unk32 = unk32;
+            return this;
+        }
+
+        public Builder withBendAngle(short bendAngle) {
+            this.bendAngle = bendAngle;
+            return this;
+        }
+
+        public TextFieldOriginal build() {
+            return new TextFieldOriginal(this);
+        }
     }
 }
