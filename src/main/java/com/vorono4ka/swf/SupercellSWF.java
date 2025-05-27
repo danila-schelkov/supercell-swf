@@ -2,7 +2,6 @@ package com.vorono4ka.swf;
 
 import com.vorono4ka.FlatSupercellSWFLoader;
 import com.vorono4ka.ProgressTracker;
-import com.vorono4ka.math.Rendering;
 import com.vorono4ka.streams.ByteStream;
 import com.vorono4ka.swf.exceptions.*;
 import com.vorono4ka.swf.file.ScFileInfo;
@@ -12,7 +11,6 @@ import com.vorono4ka.swf.file.exceptions.FileVerificationException;
 import com.vorono4ka.swf.file.exceptions.UnknownFileVersionException;
 import com.vorono4ka.swf.movieclips.MovieClipModifierOriginal;
 import com.vorono4ka.swf.movieclips.MovieClipOriginal;
-import com.vorono4ka.swf.shapes.ShapeDrawBitmapCommand;
 import com.vorono4ka.swf.shapes.ShapeOriginal;
 import com.vorono4ka.swf.textfields.TextFieldOriginal;
 import com.vorono4ka.swf.textures.SWFTexture;
@@ -59,6 +57,7 @@ public class SupercellSWF {
 
     private String filename;
     private Path path;
+    private int containerVersion;
 
     public static SupercellSWF createEmpty() {
         SupercellSWF swf = new SupercellSWF();
@@ -222,6 +221,14 @@ public class SupercellSWF {
     }
 
     /**
+     * @return version of the file from which swf was loaded
+     * @since 1.1.0
+     * */
+    public int getContainerVersion() {
+        return containerVersion;
+    }
+
+    /**
      * @return filename of loaded info file.
      * @since 1.0.0
      */
@@ -327,22 +334,6 @@ public class SupercellSWF {
         return filepath.substring(0, filepath.length() - 3) + TEXTURE_EXTENSION;
     }
 
-    public List<ShapeDrawBitmapCommand> getDrawBitmapsOfTexture(int textureIndex) {
-        List<ShapeDrawBitmapCommand> bitmapCommands = new ArrayList<>();
-
-        for (ShapeOriginal shape : this.shapes) {
-            for (ShapeDrawBitmapCommand command : shape.getCommands()) {
-                if (command.getTextureIndex() == textureIndex) {
-                    if (!bitmapCommands.contains(command)) {
-                        bitmapCommands.add(command);
-                    }
-                }
-            }
-        }
-
-        return bitmapCommands;
-    }
-
     private boolean loadInternal(String path, boolean isTextureFile, boolean preferLowres) throws LoadingFaultException, UnableToFindObjectException, UnsupportedCustomPropertyException, TextureFileNotFound {
         try {
             byte[] data;
@@ -355,16 +346,10 @@ public class SupercellSWF {
             ScFileInfo unpacked = ScFileUnpacker.unpack(data);
             byte[] decompressedData = unpacked.data();
 
+            containerVersion = unpacked.version();
+
             if (unpacked.version() == 5) {
-                boolean result = loadSc2(decompressedData, preferLowres);
-
-                for (ShapeOriginal shape : shapes) {
-                    for (ShapeDrawBitmapCommand command : shape.getCommands()) {
-                        command.setTriangulator(Rendering.TRIANGULATOR_FUNCTION_2);
-                    }
-                }
-
-                return result;
+                return loadSc2(decompressedData, preferLowres);
             }
 
             return loadSc1(path, isTextureFile, decompressedData);
@@ -450,12 +435,6 @@ public class SupercellSWF {
             for (Export export : exports) {
                 MovieClipOriginal movieClip = this.getOriginalMovieClip(export.id(), export.name());
                 movieClip.setExportName(export.name());
-            }
-
-            for (ShapeOriginal shape : shapes) {
-                for (ShapeDrawBitmapCommand command : shape.getCommands()) {
-                    command.setTriangulator(Rendering.TRIANGULATOR_FUNCTION_1);
-                }
             }
 
             return true;

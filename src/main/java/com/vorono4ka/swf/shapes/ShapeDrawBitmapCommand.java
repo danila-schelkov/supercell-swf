@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.IntFunction;
 
 public class ShapeDrawBitmapCommand implements Savable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ShapeDrawBitmapCommand.class);
@@ -21,9 +20,6 @@ public class ShapeDrawBitmapCommand implements Savable {
 
     private int textureIndex;
     private List<ShapePoint> shapePoints;
-
-    private IntFunction<int[]> triangulator;
-    private int[] indices;
 
     /**
      * @since 1.0.0
@@ -219,24 +215,6 @@ public class ShapeDrawBitmapCommand implements Savable {
      */
     public int getTriangleCount() {
         return this.getVertexCount() - 2;
-    }
-
-    /**
-     * @since 1.0.0
-     */
-    public void setTriangulator(IntFunction<int[]> triangulator) {
-        this.triangulator = triangulator;
-    }
-
-    /**
-     * @since 1.0.0
-     */
-    public int[] getIndices() {
-        if (indices != null) {
-            return indices;
-        }
-
-        return indices = triangulator.apply(getTriangleCount());
     }
 
     private Tag determineTag() {
