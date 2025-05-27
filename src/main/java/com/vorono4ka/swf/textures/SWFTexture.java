@@ -63,22 +63,17 @@ public class SWFTexture implements Savable {
     }
 
     public SWFTexture(Tag tag, TextureType type, int width, int height, Buffer pixelBuffer) {
+        validateTag(tag);
+        validateTextureSize(width, height);
+
         this.tag = tag;
         this.type = type;
         this.width = width;
         this.height = height;
 
-        if (pixelBuffer == null) {
-            throw new NullPointerException("pixelBuffer must be set");
-        }
-
         validatePixelBuffer(pixelBuffer, width, height, type);
 
         this.pixels = pixelBuffer;
-    }
-
-    private static boolean hasInterlacing(Tag tag) {
-        return tag == Tag.TEXTURE_5 || tag == Tag.TEXTURE_6 || tag == Tag.TEXTURE_7;
     }
 
     /**
@@ -97,7 +92,7 @@ public class SWFTexture implements Savable {
         if (tag == Tag.TEXTURE_FILE_REFERENCE) {
             textureFilename = stream.readAscii();
             if (textureFilename == null) {
-                throw new LoadingFaultException("Compressed texture filename cannot be null.");
+                throw new LoadingFaultException("Texture file reference cannot be null.");
             }
         } else {
             textureFilename = null;
@@ -109,11 +104,11 @@ public class SWFTexture implements Savable {
 
         if (!hasTexture) return;
 
-        // TODO: add callbacks for renderer generating
+        // TODO: add callbacks for renderer?
         if (tag == Tag.KHRONOS_TEXTURE) {
             ktxData = stream.readByteArray(khronosTextureLength);
         } else if (tag != Tag.TEXTURE_FILE_REFERENCE) {
-            pixels = loadTexture(stream, width, height, type.pixelBytes, hasInterlacing(tag));
+            pixels = loadTexture(stream, width, height, type.pixelBytes, tag.hasInterlacing());
         }
 
         // Note: it seems TEXTURE_3 contains mip map data along with deprecated (?) TEXTURE_2, TEXTURE_7
@@ -125,7 +120,7 @@ public class SWFTexture implements Savable {
         //     do {
         //         levelWidth = Math.max(1, width >> level);
         //         levelHeight = Math.max(1, height >> level);
-        //         mipMaps[level] = loadTexture(stream, width, height, textureInfo.pixelBytes(), hasInterlacing(tag));
+        //         mipMaps[level] = loadTexture(stream, width, height, textureInfo.pixelBytes(), tag.hasInterlacing());
         //     } while (levelWidth > 1 || levelHeight > 1);
         // }
     }
@@ -153,7 +148,7 @@ public class SWFTexture implements Savable {
         if (tag == Tag.KHRONOS_TEXTURE) {
             stream.write(ktxData);
         } else if (tag != Tag.TEXTURE_FILE_REFERENCE) {
-            saveTexture(stream, width, height, type.pixelBytes, hasInterlacing(tag));
+            saveTexture(stream, width, height, type.pixelBytes, tag.hasInterlacing());
         }
     }
 
@@ -400,7 +395,8 @@ public class SWFTexture implements Savable {
         }
 
         public Builder tag(Tag tag) {
-            // TODO: validate whether it is texture tag
+            validateTag(tag);
+
             this.tag = tag;
             return this;
         }
@@ -434,7 +430,8 @@ public class SWFTexture implements Savable {
 
     private static void validatePixelBuffer(Buffer pixelBuffer, int width, int height, TextureType type) {
         if (pixelBuffer == null) {
-            return;
+            // TODO: remove as soon as possible when other texture types added.
+            throw new NullPointerException("pixelBuffer must be set");
         }
 
         if (width == -1 || height == -1 || type == null) {
@@ -443,7 +440,27 @@ public class SWFTexture implements Savable {
 
         int bytesExpected = width * height * type.pixelBytes;
         if (bytesExpected != BufferUtils.getByteCapacity(pixelBuffer)) {
-            throw new IllegalStateException("Expected " + bytesExpected + " bytes but got " + pixelBuffer.capacity());
+            throw new IllegalArgumentException("Expected " + bytesExpected + " bytes but got " + pixelBuffer.capacity());
+        }
+    }
+
+    private static void validateTag(Tag tag) {
+        if (!tag.isTexture()) {
+            throw new IllegalArgumentException("Tag must be a Texture tag, but is " + tag);
+        }
+    }
+
+    private static void validateTextureSize(int width, int height) {
+        if (width == -1 || height == -1) {
+            throw new IllegalStateException("width and height must be set.");
+        }
+
+        if (width < 0) {
+            throw new IllegalArgumentException("width must be greater than zero.");
+        }
+
+        if (height < 0) {
+            throw new IllegalArgumentException("height must be greater than zero.");
         }
     }
 }
