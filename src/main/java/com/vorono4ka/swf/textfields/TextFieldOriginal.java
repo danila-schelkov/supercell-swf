@@ -2,7 +2,7 @@ package com.vorono4ka.swf.textfields;
 
 import com.supercell.swf.FBResources;
 import com.supercell.swf.FBTextField;
-import com.vorono4ka.math.ShortRect;
+import com.vorono4ka.math.Rect;
 import com.vorono4ka.streams.ByteStream;
 import com.vorono4ka.swf.DisplayObjectOriginal;
 import com.vorono4ka.swf.Tag;
@@ -14,7 +14,7 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
 
     private String fontName;
 
-    private ShortRect bounds;
+    private Rect bounds;
 
     private int color;
     private int outlineColor;
@@ -42,7 +42,7 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
     public TextFieldOriginal(FBTextField fb, FBResources resources) {
         id = fb.id();
         fontName = fb.fontNameRefId() != 0 ? resources.strings(fb.fontNameRefId()) : null;
-        bounds = new ShortRect(fb.left(), fb.top(), fb.right(), fb.bottom());
+        bounds = new Rect(fb.left(), fb.top(), fb.right(), fb.bottom());
         color = fb.color();
         outlineColor = fb.outlineColor();
         defaultText = fb.defaultTextRefId() != 0 ? resources.strings(fb.defaultTextRefId()) : null;
@@ -102,11 +102,11 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
         this.align = (byte) stream.readUnsignedChar();
         this.fontSize = (byte) stream.readUnsignedChar();
 
-        this.bounds = new ShortRect(
-            (short) stream.readShort(),
-            (short) stream.readShort(),
-            (short) stream.readShort(),
-            (short) stream.readShort()
+        this.bounds = new Rect(
+            stream.readShort(),
+            stream.readShort(),
+            stream.readShort(),
+            stream.readShort()
         );
 
         this.isOutlineEnabled = stream.readBoolean();
@@ -183,10 +183,11 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
         stream.writeUnsignedChar(this.align);
         stream.writeUnsignedChar(this.fontSize);
 
-        stream.writeShort(this.bounds.left());
-        stream.writeShort(this.bounds.top());
-        stream.writeShort(this.bounds.right());
-        stream.writeShort(this.bounds.bottom());
+        // Note: maybe not to use float Rect for field but return and let set using it
+        stream.writeShort((int) this.bounds.getLeft());
+        stream.writeShort((int) this.bounds.getTop());
+        stream.writeShort((int) this.bounds.getRight());
+        stream.writeShort((int) this.bounds.getBottom());
 
         stream.writeBoolean(this.isOutlineEnabled);
 
@@ -227,7 +228,7 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
         return (float) bendAngle / Short.MAX_VALUE * 360f;
     }
 
-    public void getBendAngle(float bendAngle) {
+    public void setBendAngle(float bendAngle) {
         this.bendAngle = (short) (bendAngle * Short.MAX_VALUE / 360f);
     }
 
@@ -278,7 +279,7 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
     public static final class Builder {
         private String fontName;
 
-        private ShortRect bounds;
+        private Rect bounds;
 
         private int color;
         private int outlineColor;
@@ -307,8 +308,8 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
             return this;
         }
 
-        public Builder withBounds(ShortRect bounds) {
-            this.bounds = bounds;
+        public Builder withBounds(int left, int top, int right, int bottom) {
+            this.bounds = new Rect(left, top, right, bottom);
             return this;
         }
 
