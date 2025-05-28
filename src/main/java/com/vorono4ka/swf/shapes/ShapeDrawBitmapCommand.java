@@ -66,7 +66,7 @@ public class ShapeDrawBitmapCommand implements Savable {
         shapePoints = new ArrayList<>(vertexCount);
         for (int i = 0; i < vertexCount; i++) {
             FBShapePoint sbPoint = resources.shapePoints(fb.startingPointIndex() + i);
-            shapePoints.set(i, new ShapePoint(sbPoint));
+            shapePoints.add(i, new ShapePoint(sbPoint));
         }
 
         this.tag = determineTag();
