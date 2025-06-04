@@ -4,7 +4,7 @@ plugins {
     id "maven-publish"
 }
 
-group = 'com.vorono4ka'
+group = 'dev.donutquine'
 version = project.version
 
 repositories {
