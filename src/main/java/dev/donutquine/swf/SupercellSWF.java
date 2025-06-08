@@ -9,7 +9,6 @@ import dev.donutquine.swf.file.ScFilePacker;
 import dev.donutquine.swf.file.ScFileUnpacker;
 import dev.donutquine.swf.file.exceptions.FileVerificationException;
 import dev.donutquine.swf.file.exceptions.UnknownFileVersionException;
-import dev.donutquine.swf.exceptions.*;
 import dev.donutquine.swf.movieclips.MovieClipModifierOriginal;
 import dev.donutquine.swf.movieclips.MovieClipOriginal;
 import dev.donutquine.swf.shapes.ShapeOriginal;
