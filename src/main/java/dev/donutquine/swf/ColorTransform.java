@@ -1,6 +1,5 @@
 package dev.donutquine.swf;
 
-import com.supercell.swf.FBColorTransform;
 import dev.donutquine.math.MathHelper;
 import dev.donutquine.streams.ByteStream;
 
@@ -42,18 +41,14 @@ public class ColorTransform implements Savable {
         this.blueMultiplier = colorTransform.blueMultiplier;
     }
 
-    public ColorTransform(FBColorTransform colorTransform) {
-        initFromFlatBuffer(colorTransform);
-    }
-
-    public void initFromFlatBuffer(FBColorTransform colorTransform) {
-        this.redAddition = colorTransform.ra();
-        this.greenAddition = colorTransform.ga();
-        this.blueAddition = colorTransform.ba();
-        this.alpha = colorTransform.a();
-        this.redMultiplier = colorTransform.r();
-        this.greenMultiplier = colorTransform.g();
-        this.blueMultiplier = colorTransform.b();
+    public void set(int r, int g, int b, int a, int ra, int ga, int ba) {
+        this.redMultiplier = r;
+        this.greenMultiplier = g;
+        this.blueMultiplier = b;
+        this.alpha = a;
+        this.redAddition = ra;
+        this.greenAddition = ga;
+        this.blueAddition = ba;
     }
 
     public void read(ByteStream stream) {

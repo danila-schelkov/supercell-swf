@@ -1,7 +1,5 @@
 package dev.donutquine.swf;
 
-import com.supercell.swf.FBMatrix2x3;
-import com.supercell.swf.FBShortMatrix2x3;
 import dev.donutquine.streams.ByteStream;
 
 import java.util.Objects;
@@ -49,30 +47,22 @@ public class Matrix2x3 implements Savable {
         this.y = matrix.y;
     }
 
-    public Matrix2x3(FBMatrix2x3 matrix) {
-        initFromFlatBuffer(matrix);
+    public void set(float a, float b, float c, float d, float x, float y) {
+        this.a = a;
+        this.b = b;
+        this.c = c;
+        this.d = d;
+        this.x = x;
+        this.y = y;
     }
 
-    public Matrix2x3(FBShortMatrix2x3 matrix) {
-        initFromFlatBuffer(matrix);
-    }
-
-    public void initFromFlatBuffer(FBMatrix2x3 matrix) {
-        this.a = matrix.a();
-        this.b = matrix.b();
-        this.c = matrix.c();
-        this.d = matrix.d();
-        this.x = matrix.x();
-        this.y = matrix.y();
-    }
-
-    public void initFromFlatBuffer(FBShortMatrix2x3 matrix) {
-        this.a = matrix.a() / DEFAULT_MULTIPLIER;
-        this.b = matrix.b() / DEFAULT_MULTIPLIER;
-        this.c = matrix.c() / DEFAULT_MULTIPLIER;
-        this.d = matrix.d() / DEFAULT_MULTIPLIER;
-        this.x = matrix.x() / TWIP_MULTIPLIER;
-        this.y = matrix.y() / TWIP_MULTIPLIER;
+    public void set(short a, short b, short c, short d, short x, short y) {
+        this.a = a / DEFAULT_MULTIPLIER;
+        this.b = b / DEFAULT_MULTIPLIER;
+        this.c = c / DEFAULT_MULTIPLIER;
+        this.d = d / DEFAULT_MULTIPLIER;
+        this.x = x / TWIP_MULTIPLIER;
+        this.y = y / TWIP_MULTIPLIER;
     }
 
     public void load(ByteStream stream, boolean isPrecise) {

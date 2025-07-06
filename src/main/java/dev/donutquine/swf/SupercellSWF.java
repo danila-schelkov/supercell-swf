@@ -1,7 +1,7 @@
 package dev.donutquine.swf;
 
-import dev.donutquine.FlatSupercellSWFLoader;
 import dev.donutquine.ProgressTracker;
+import dev.donutquine.SupercellSWFFlatLoader;
 import dev.donutquine.streams.ByteStream;
 import dev.donutquine.swf.exceptions.*;
 import dev.donutquine.swf.file.ScFileInfo;
@@ -344,15 +344,14 @@ public class SupercellSWF {
             }
 
             ScFileInfo unpacked = ScFileUnpacker.unpack(data);
-            byte[] decompressedData = unpacked.data();
 
             containerVersion = unpacked.version();
 
-            if (unpacked.version() == 5) {
-                return loadSc2(decompressedData, preferLowres);
+            if (unpacked.version() >= 5) {
+                return loadSc2(unpacked.data(), preferLowres);
             }
 
-            return loadSc1(path, isTextureFile, decompressedData);
+            return loadSc1(path, isTextureFile, unpacked.data());
         } catch (UnknownFileVersionException | FileVerificationException |
                  IOException exception) {
             LOGGER.error("An error occurred while decompressing the file: {}", path, exception);
@@ -361,7 +360,7 @@ public class SupercellSWF {
     }
 
     private boolean loadSc2(byte[] decompressedData, boolean preferLowres) {
-        FlatSupercellSWFLoader loader = new FlatSupercellSWFLoader(decompressedData, preferLowres);
+        SupercellSWFFlatLoader loader = new SupercellSWFFlatLoader(decompressedData, preferLowres);
 
         this.exports = loader.exports;
         this.matrixBanks.addAll(loader.matrixBanks);

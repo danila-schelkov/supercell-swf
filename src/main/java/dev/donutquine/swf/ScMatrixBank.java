@@ -32,8 +32,16 @@ public class ScMatrixBank {
         this.matrices.add(matrix);
     }
 
+    public void setMatrix(int index, Matrix2x3 matrix) {
+        this.matrices.set(index, matrix);
+    }
+
     public void addColorTransform(ColorTransform colorTransform) {
         this.colorTransforms.add(colorTransform);
+    }
+
+    public void setColorTransform(int index, ColorTransform colorTransform) {
+        this.colorTransforms.set(index, colorTransform);
     }
 
     public List<Matrix2x3> getMatrices() {
