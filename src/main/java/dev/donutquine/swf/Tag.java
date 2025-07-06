@@ -124,6 +124,10 @@ public enum Tag {
         return this == MOVIE_CLIP_FRAME || this == MOVIE_CLIP_FRAME_2;
     }
 
+    public boolean isMovieClipModifier() {
+        return this == MODIFIER_STATE_2 || this == MODIFIER_STATE_3 || this == MODIFIER_STATE_4;
+    }
+
     public boolean isTextField() {
         return this == TEXT_FIELD || this == TEXT_FIELD_2 || this == TEXT_FIELD_3
             || this == TEXT_FIELD_4 || this == TEXT_FIELD_5 || this == TEXT_FIELD_6

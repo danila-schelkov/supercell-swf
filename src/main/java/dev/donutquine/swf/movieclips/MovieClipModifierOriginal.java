@@ -11,6 +11,18 @@ public class MovieClipModifierOriginal extends DisplayObjectOriginal {
     public MovieClipModifierOriginal() {
     }
 
+    public MovieClipModifierOriginal(Tag type) {
+        validateType(type);
+
+        this.tag = type;
+    }
+
+    private static void validateType(Tag type) {
+        if (!type.isMovieClipModifier()) {
+            throw new IllegalArgumentException("Type must be is not a MovieClipModifier");
+        }
+    }
+
     public MovieClipModifierOriginal(FBMovieClipModifier fb) {
         id = fb.id();
         tag = Tag.values()[fb.tag()];
