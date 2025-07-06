@@ -6,7 +6,7 @@ table FBTexture {
     width:uint16;
     height:uint16;
     data:[byte];
-    texture_file_ref_id:int32;
+    texture_file:string;
 }
 
 table FBTextureSet {
