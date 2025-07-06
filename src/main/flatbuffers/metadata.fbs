@@ -1,0 +1,24 @@
+namespace com.supercell.swf;
+
+table ExportMetadata {
+    name: string;
+    hash: [byte];  // fnv afaik
+}
+
+table Metadata {
+    translation_precision: uint32;
+    scale_precision: uint32;
+    shape_count: uint32;
+    movie_clip_count: uint32;
+    texture_count: uint32;
+    text_field_count: uint32;
+    u6: uint32;
+    resources_offset: uint32;
+    objects_offset: uint32;
+    texture_chunk_length: uint32;
+    exports: [ExportMetadata];
+    compressed_size: uint32;
+    external_matrix_banks_size: uint32;
+}
+
+root_type Metadata;

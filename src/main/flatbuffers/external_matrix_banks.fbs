@@ -1,0 +1,23 @@
+namespace com.supercell.swf;
+
+table ExternalMatrixBank {
+    index: uint32;
+    offset: uint32 = 0;  // compressed_offset
+    size: uint32;  // compressed_size
+    decompressed_size: uint32;
+    u5: uint32;  // count of zeros
+    u6: uint32;
+    short_matrix_count: uint32;
+    matrix_count: uint32;
+    color_transform_count: uint32;
+    u10: uint32;  // some offset, same as decompressed_size
+    u11: uint32;
+    u12: uint32;
+    always_10: uint32;  // always 10
+}
+
+table ExternalMatrixBanks {
+    matrix_banks: [ExternalMatrixBank];
+}
+
+root_type ExternalMatrixBanks;

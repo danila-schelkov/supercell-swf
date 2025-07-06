@@ -4,7 +4,7 @@ plugins {
     id "maven-publish"
 }
 
-group = 'com.vorono4ka'
+group = 'dev.donutquine'
 version = project.version
 
 repositories {
@@ -22,7 +22,7 @@ repositories {
 dependencies {
     implementation group: 'com.google.flatbuffers', name: 'flatbuffers-java', version: project.flatbuffers_version
     implementation group: 'org.slf4j', name: 'slf4j-simple', version: project.slf4j_version
-    implementation group: 'com.vorono4ka', name: 'sc-file', version: project.sc_file_version
+    implementation group: 'dev.donutquine', name: 'sc-file', version: project.sc_file_version
 }
 
 import io.netifi.flatbuffers.plugin.tasks.FlatBuffers
