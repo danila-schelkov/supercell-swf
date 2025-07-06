@@ -1,6 +1,5 @@
 package dev.donutquine.swf.textures;
 
-import com.supercell.swf.FBResources;
 import com.supercell.swf.FBTexture;
 import dev.donutquine.streams.ByteStream;
 import dev.donutquine.swf.Savable;
@@ -42,7 +41,7 @@ public class SWFTexture implements Savable {
     /**
      * @since 1.0.0
      */
-    public SWFTexture(FBTexture fb, FBResources resources) {
+    public SWFTexture(FBTexture fb) {
         this.type = TextureType.getByType(fb.type());
         this.width = fb.width();
         this.height = fb.height();
@@ -55,7 +54,7 @@ public class SWFTexture implements Savable {
 
             this.ktxData = data;
         } else {
-            this.textureFilename = fb.textureFileRefId() != 0 ? resources.strings(fb.textureFileRefId()) : null;
+            this.textureFilename = fb.textureFile();
         }
 
         this.tag = determineTag();

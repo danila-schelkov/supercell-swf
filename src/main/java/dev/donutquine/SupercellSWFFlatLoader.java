@@ -65,7 +65,7 @@ public class SupercellSWFFlatLoader {
         this.textures = deserializeTextures(getNestedFlatbufferBytes(mainBuffer), preferLowres);
     }
 
-    private List<SWFTexture> deserializeTextures(ByteBuffer chunkBuffer, boolean preferLowres) {
+    private static List<SWFTexture> deserializeTextures(ByteBuffer chunkBuffer, boolean preferLowres) {
         FBTextureSets fbTextureSets = FBTextureSets.getRootAsFBTextureSets(chunkBuffer);
 
         List<SWFTexture> textures = new ArrayList<>(fbTextureSets.textureSetsLength());
@@ -84,7 +84,7 @@ public class SupercellSWFFlatLoader {
                 throw new IllegalArgumentException("FBTextureSet doesn't contain any textures.");
             }
 
-            textures.add(new SWFTexture(fbTexture, resources));
+            textures.add(new SWFTexture(fbTexture));
         }
 
         return textures;
