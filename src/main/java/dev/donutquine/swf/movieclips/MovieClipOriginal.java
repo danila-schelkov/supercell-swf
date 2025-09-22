@@ -12,7 +12,6 @@ import dev.donutquine.swf.Savable;
 import dev.donutquine.swf.SupercellSWF;
 import dev.donutquine.swf.Tag;
 import dev.donutquine.swf.exceptions.*;
-import dev.donutquine.swf.exceptions.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +49,7 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         for (int i = 0; i < fb.childIdsLength(); i++) {
             children.add(new MovieClipChild(fb.childIds(i), fb.childBlends(i), fb.childNameRefIdsLength() != 0 ? resources.strings(fb.childNameRefIds(i)) : null));
         }
-        frames = new ArrayList<>(fb.framesLength());
+        frames = new ArrayList<>(fb.framesLength() + fb.shortFramesLength());
         int frameElementOffset = fb.frameElementOffset() / 3;
         if (fb.framesLength() > 0) {
             for (int i = 0; i < fb.framesLength(); i++) {
@@ -59,14 +58,17 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
                 frameElementOffset += frame.getElementCount();
                 frames.add(frame);
             }
-        } else {
+        } else if (fb.shortFramesLength() > 0) {
             for (int i = 0; i < fb.shortFramesLength(); i++) {
                 FBMovieClipShortFrame fbFrame = fb.shortFrames(i);
                 MovieClipFrame frame = new MovieClipFrame(fbFrame, resources, frameElementOffset);
                 frameElementOffset += frame.getElementCount();
                 frames.add(frame);
             }
+        } else {
+            throw new IllegalStateException("Movie clip frame must have at least one frame");
         }
+
         matrixBankIndex = fb.matrixBankIndex();
         int scalingGridIndex = fb.scalingGridIndex();
         if (scalingGridIndex != -1) {
