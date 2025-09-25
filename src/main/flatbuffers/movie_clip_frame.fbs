@@ -1,0 +1,17 @@
+namespace com.supercell.swf;
+
+struct FBMovieClipFrameElement {
+    child_index:ushort;
+    matrix_index:ushort;
+    color_transform_index:ushort;
+}
+
+struct FBMovieClipFrame {
+    frame_element_count:int32;
+    label_ref_id:int32;
+}
+
+// Removed in SC 6
+// struct FBMovieClipShortFrame {
+//     frame_element_count:int16;
+// }

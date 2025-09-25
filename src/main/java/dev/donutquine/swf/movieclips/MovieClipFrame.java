@@ -1,7 +1,6 @@
 package dev.donutquine.swf.movieclips;
 
 import com.supercell.swf.FBMovieClipFrame;
-import com.supercell.swf.FBMovieClipShortFrame;
 import com.supercell.swf.FBResources;
 import dev.donutquine.streams.ByteStream;
 import dev.donutquine.swf.Savable;
@@ -30,16 +29,6 @@ public class MovieClipFrame implements Savable {
 
     public MovieClipFrame(FBMovieClipFrame fb, FBResources resources, int offset) {
         label = fb.labelRefId() != 0 ? resources.strings(fb.labelRefId()) : null;
-        elements = new ArrayList<>(fb.frameElementCount());
-        for (int i = 0; i < fb.frameElementCount(); i++) {
-            elements.add(new MovieClipFrameElement(resources.movieClipFrameElements(offset + i)));
-        }
-
-        tag = Tag.MOVIE_CLIP_FRAME_2;
-    }
-
-    public MovieClipFrame(FBMovieClipShortFrame fb, FBResources resources, int offset) {
-        label = null;
         elements = new ArrayList<>(fb.frameElementCount());
         for (int i = 0; i < fb.frameElementCount(); i++) {
             elements.add(new MovieClipFrameElement(resources.movieClipFrameElements(offset + i)));

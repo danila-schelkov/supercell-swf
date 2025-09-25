@@ -1,19 +1,6 @@
+include "movie_clip_frame.fbs";
+
 namespace com.supercell.swf;
-
-struct FBMovieClipFrameElement {
-    child_index:ushort;
-    matrix_index:ushort;
-    color_transform_index:ushort;
-}
-
-struct FBMovieClipFrame {
-    frame_element_count:int32;
-    label_ref_id:int32;
-}
-
-struct FBMovieClipShortFrame {
-    frame_element_count:int16;
-}
 
 table FBMovieClip {
     id:uint16;
@@ -28,7 +15,8 @@ table FBMovieClip {
     frame_element_offset:int32;
     matrix_bank_index:uint16;
     scaling_grid_index:int32 = -1;
-    short_frames:[FBMovieClipShortFrame];
+    // short_frames:[FBMovieClipShortFrame];  // removed in SC 6 container version, not supported now
+    frame_data_offset: int32 = -1;  // added in SC 6
 }
 
 table FBMovieClips {

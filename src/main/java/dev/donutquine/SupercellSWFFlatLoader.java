@@ -2,6 +2,8 @@ package dev.donutquine;
 
 import com.supercell.swf.*;
 import dev.donutquine.swf.Export;
+import dev.donutquine.swf.Matrix2x3;
+import dev.donutquine.swf.ScCompressedMatrixBank;
 import dev.donutquine.swf.ScMatrixBank;
 import dev.donutquine.swf.file.compression.Zstandard;
 import dev.donutquine.swf.movieclips.MovieClipModifierOriginal;
@@ -27,6 +29,8 @@ public class SupercellSWFFlatLoader {
     public final List<MovieClipOriginal> movieClips;
     public final List<MovieClipModifierOriginal> modifiers;
     public final List<SWFTexture> textures;
+
+    private ByteBuffer[] matrixDataBuffers;
 
     public SupercellSWFFlatLoader(InputStream inputStream, boolean preferLowres) throws IOException {
         this(inputStream.readAllBytes(), preferLowres);
@@ -105,7 +109,15 @@ public class SupercellSWFFlatLoader {
         List<MovieClipOriginal> movieClips = new ArrayList<>(fbMovieClips.clipsLength());
 
         for (int i = 0; i < fbMovieClips.clipsLength(); i++) {
-            movieClips.add(new MovieClipOriginal(fbMovieClips.clips(i), resources));
+            FBMovieClip fbClip = fbMovieClips.clips(i);
+            MovieClipOriginal movieClipOriginal;
+            if (matrixDataBuffers != null) {
+                movieClipOriginal = new MovieClipOriginal(fbClip, resources, matrixDataBuffers[fbClip.matrixBankIndex()]);
+            } else {
+                movieClipOriginal = new MovieClipOriginal(fbClip, resources, null);
+            }
+
+            movieClips.add(movieClipOriginal);
         }
 
         return movieClips;
@@ -198,13 +210,17 @@ public class SupercellSWFFlatLoader {
         return null;
     }
 
-    private static List<ScMatrixBank> deserializeExternalMatrixBanks(ExternalMatrixBanks externalMatrixBanks, byte[] data, int matrixBankDataPosition) {
+    private List<ScMatrixBank> deserializeExternalMatrixBanks(ExternalMatrixBanks externalMatrixBanks, byte[] data, int matrixBankDataPosition) {
         List<ScMatrixBank> matrixBanks = new ArrayList<>();
+
+        matrixDataBuffers = new ByteBuffer[externalMatrixBanks.matrixBanksLength()];
 
         for (int i = 0; i < externalMatrixBanks.matrixBanksLength(); i++) {
             ExternalMatrixBank externalMatrixBank = externalMatrixBanks.matrixBanks(i);
 
-            int totalMatrixCount = (int) (externalMatrixBank.matrixCount() + externalMatrixBank.shortMatrixCount());
+            int uncompressedMatrixCount = (int) (externalMatrixBank.floatMatrixCount() + externalMatrixBank.shortMatrixCount());
+            int totalMatrixCount = uncompressedMatrixCount;
+            totalMatrixCount = Math.max(totalMatrixCount, (int) (externalMatrixBank.matrixBlockCount() * ScCompressedMatrixBank.BLOCK_SIZE));
             int colorTransformCount = (int) externalMatrixBank.colorTransformCount();
             ScMatrixBank matrixBank = new ScMatrixBank(totalMatrixCount, colorTransformCount);
 
@@ -213,7 +229,7 @@ public class SupercellSWFFlatLoader {
             ByteBuffer byteBuffer = ByteBuffer.wrap(decompressed);
             byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
 
-            for (int j = 0; j < externalMatrixBank.matrixCount(); j++) {
+            for (int j = 0; j < externalMatrixBank.floatMatrixCount(); j++) {
                 float a = byteBuffer.getFloat();
                 float b = byteBuffer.getFloat();
                 float c = byteBuffer.getFloat();
@@ -224,17 +240,10 @@ public class SupercellSWFFlatLoader {
                 matrixBank.getMatrix(j).set(a, b, c, d, x, y);
             }
 
-            int[] zeros = new int[(int) externalMatrixBank.u5()];
+            // TODO: move to compressed matrix bank get matrix
+            byteBuffer.position((int) (externalMatrixBank.floatMatrixCount() * Float.BYTES * 6 + externalMatrixBank.matrixBlockCount() * Integer.BYTES));
 
-            for (int j = 0; j < zeros.length; j++) {
-                zeros[j] = byteBuffer.getInt();
-
-                if (zeros[j] != 0) {
-                    throw new IllegalStateException("Look here! Unusual non-zero: " + byteBuffer.position() + ", Buffer: " + i);
-                }
-            }
-
-            for (int j = (int) externalMatrixBank.matrixCount(); j < totalMatrixCount; j++) {
+            for (int j = (int) externalMatrixBank.floatMatrixCount(); j < uncompressedMatrixCount; j++) {
                 matrixBank.getMatrix(j).set(
                     byteBuffer.getShort(),
                     byteBuffer.getShort(),
@@ -245,12 +254,14 @@ public class SupercellSWFFlatLoader {
                 );
             }
 
-            // reading 8 extra bytes, always zeros
-            int zero1 = byteBuffer.getInt();
-            int zero2 = byteBuffer.getInt();
-            if (zero1 != 0 || zero2 != 0) {
-                throw new IllegalStateException("Look here! Unusual non-zero: " + byteBuffer.position() + ", Buffer: " + i);
+            ScCompressedMatrixBank compressedMatrixBank = new ScCompressedMatrixBank(byteBuffer, (int) externalMatrixBank.floatMatrixCount(), (int) externalMatrixBank.shortMatrixCount(), (int) externalMatrixBank.matrixBlockCount());
+            for (int j = uncompressedMatrixCount; j < externalMatrixBank.matrixBlockCount() * ScCompressedMatrixBank.BLOCK_SIZE; j++) {
+                Matrix2x3 matrix = compressedMatrixBank.getMatrix(j);
+                matrixBank.getMatrix(j).set(matrix.getA(), matrix.getB(), matrix.getC(), matrix.getD(), matrix.getX(), matrix.getY());
             }
+
+            // TODO: move to compressed matrix bank get matrix
+            byteBuffer.position((int) (externalMatrixBank.floatMatrixCount() * Float.BYTES * 6 + externalMatrixBank.matrixBlockCount() * Integer.BYTES + externalMatrixBank.blocksDataSize() * Short.BYTES));
 
             for (int j = 0; j < externalMatrixBank.colorTransformCount(); j++) {
                 int r = byteBuffer.get() & 0xFF;
@@ -264,6 +275,11 @@ public class SupercellSWFFlatLoader {
             }
 
             matrixBanks.add(matrixBank);
+
+            ByteBuffer sliced = byteBuffer.slice((int) externalMatrixBank.frameDataOffset(), (int) externalMatrixBank.frameDataSize());
+            sliced.order(ByteOrder.LITTLE_ENDIAN);
+
+            matrixDataBuffers[i] = sliced;
         }
 
         return matrixBanks;
@@ -273,6 +289,6 @@ public class SupercellSWFFlatLoader {
         int length = byteBuffer.getInt();
         byte[] bytes = new byte[length];
         byteBuffer.get(bytes);
-        return ByteBuffer.wrap(bytes);
+        return ByteBuffer.wrap(bytes).asReadOnlyBuffer();
     }
 }

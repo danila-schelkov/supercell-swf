@@ -2,20 +2,16 @@ package dev.donutquine.swf.movieclips;
 
 import com.supercell.swf.FBMovieClip;
 import com.supercell.swf.FBMovieClipFrame;
-import com.supercell.swf.FBMovieClipShortFrame;
 import com.supercell.swf.FBResources;
 import dev.donutquine.math.MathHelper;
 import dev.donutquine.math.Rect;
 import dev.donutquine.streams.ByteStream;
-import dev.donutquine.swf.DisplayObjectOriginal;
-import dev.donutquine.swf.Savable;
-import dev.donutquine.swf.SupercellSWF;
-import dev.donutquine.swf.Tag;
-import dev.donutquine.swf.exceptions.*;
+import dev.donutquine.swf.*;
 import dev.donutquine.swf.exceptions.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -41,7 +37,7 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
 
     public MovieClipOriginal() { }
 
-    public MovieClipOriginal(FBMovieClip fb, FBResources resources) {
+    public MovieClipOriginal(FBMovieClip fb, FBResources resources, ByteBuffer frameDataBuffer) {
         id = fb.id();
         exportName = fb.exportNameRefId() != 0 ? resources.strings(fb.exportNameRefId()) : null;
         fps = fb.fps();
@@ -60,13 +56,17 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
                 frames.add(frame);
             }
         } else {
-            for (int i = 0; i < fb.shortFramesLength(); i++) {
-                FBMovieClipShortFrame fbFrame = fb.shortFrames(i);
-                MovieClipFrame frame = new MovieClipFrame(fbFrame, resources, frameElementOffset);
-                frameElementOffset += frame.getElementCount();
-                frames.add(frame);
+            throw new IllegalStateException("Movie clip frame must have at least one frame");
+        }
+
+        if (fb.frameDataOffset() != -1) {
+            ExternalMovieClipFrameElementDecoder decoder = new ExternalMovieClipFrameElementDecoder();
+            List<List<MovieClipFrameElement>> frameElements = decoder.decodeMovieClipFrames(frameDataBuffer, fb.frameDataOffset());
+            for (int i = 0; i < frames.size(); i++) {
+                frames.get(i).setElements(frameElements.get(i));
             }
         }
+
         matrixBankIndex = fb.matrixBankIndex();
         int scalingGridIndex = fb.scalingGridIndex();
         if (scalingGridIndex != -1) {
