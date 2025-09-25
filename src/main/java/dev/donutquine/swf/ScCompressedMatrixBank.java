@@ -1,5 +1,7 @@
 package dev.donutquine.swf;
 
+import dev.donutquine.utilities.BitUtils;
+
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 
@@ -7,7 +9,7 @@ public class ScCompressedMatrixBank {
     public static final int BLOCK_SIZE = 16;  // 1 << 4
 
     private static final int BASE_SIZE = 13;
-    private static final int DELTA_SIZE = Integer.BYTES * 8 - BASE_SIZE;
+    private static final int DELTA_SIZE = BitUtils.INTEGER_BITS - BASE_SIZE;
     private static final int DELTA_MASK = (1 << DELTA_SIZE) - 1;
     private static final int BASE_MASK = (1 << BASE_SIZE) - 1;
 
@@ -46,10 +48,10 @@ public class ScCompressedMatrixBank {
             return decompressedMatrices[index];
         } else if (index < floatMatrixCount) {
             // MUST NEVER BE CALLED
-            return new Matrix2x3();
+            throw new IllegalArgumentException("Matrix index " + index + " is out of bounds");
         } else {  // Short matrices
             // MUST NEVER BE CALLED
-            return new Matrix2x3();
+            throw new IllegalArgumentException("Matrix index " + index + " is out of bounds");
         }
     }
 
@@ -68,7 +70,7 @@ public class ScCompressedMatrixBank {
         assert offset + BLOCK_SIZE <= matrices.length;
 
         buffer.position(metadataPosition + blockIndex * Integer.BYTES);
-        int metadata = buffer.asIntBuffer().get();
+        int metadata = buffer.getInt();
 
         int baseMatrixIndex = metadata & BASE_MASK;
         int deltaIndex = (metadata >> BASE_SIZE) & DELTA_MASK;
@@ -86,53 +88,53 @@ public class ScCompressedMatrixBank {
 
             int flag = getShort(buffer);
             if ((flag & 3) != 0) {
-                // TODO: fix casts
+                // TODO: maybe change to some bit stream?
                 switch (flag & 0xF) {
                     case 1 -> {
                         int data1 = getShort(buffer);
-                        x += ((flag << 14) & 0x3FFFFFFF | (data1 << 30)) >> 18;
-                        y += data1 >> 2;
+                        x += BitUtils.getBitInteger((data1 << 16) | flag, 4, 14);
+                        y += BitUtils.getBitInteger(data1, 2, 14);
                         deltaIndex += 2;
                     }
                     case 2 -> {
                         int data1 = getShort(buffer);
-                        a += (flag << 21) >> 25;
-                        d += ((flag << 14) & 0x3FFFFFFF | (data1 << 30)) >> 25;
-                        x += (data1 << 23) >> 25;
-                        y += (data1 << 16) >> 25;
+                        a += BitUtils.getBitInteger(flag, 4, 7);
+                        d += BitUtils.getBitInteger((data1 << 16) | flag, 11, 7);
+                        x += BitUtils.getBitInteger(data1, 2, 7);
+                        y += BitUtils.getBitInteger(data1, 9, 7);
                         deltaIndex += 2;
                     }
                     case 3 -> {
                         int data1 = getShort(buffer);
                         int data2 = getShort(buffer);
-                        a += (flag << 17) >> 21;
-                        d += ((flag << 6) & 0x3FFFFF | (data1 << 22)) >> 21;
-                        x += ((data1 << 11) & 0x7FFFFFF | (data2 << 27)) >> 21;
-                        y += data2 >> 5;
+                        a += BitUtils.getBitInteger(flag, 4, 11);
+                        d += BitUtils.getBitInteger((data1 << 16) | flag, 15, 11);
+                        x += BitUtils.getBitInteger((data2 << 16) | data1, 10, 11);
+                        y += BitUtils.getBitInteger(data2, 5, 11);
                         deltaIndex += 3;
                     }
                     case 5 -> {
                         int data1 = getShort(buffer);
                         int data2 = getShort(buffer);
 
-                        a += (flag << 21) >> 25;
-                        b += (flag << 14) & 0x3FFFFFFF | (data1 << 30) >> 25;
-                        c += data1 << 23 >> 25;
-                        d += (data1 << 16) >> 25;
-                        x += data2 & 0xFF;
-                        y += data2 >> 8;
+                        a += BitUtils.getBitInteger(flag, 4, 7);
+                        b += BitUtils.getBitInteger((data1 << 16) | flag, 11, 7);
+                        c += BitUtils.getBitInteger(data1, 2, 7);
+                        d += BitUtils.getBitInteger(data1, 9, 7);
+                        x += BitUtils.getBitInteger(data2, 0, 8);
+                        y += BitUtils.getBitInteger(data2, 8, 8);
                         deltaIndex += 3;
                     }
                     case 6 -> {
                         int data1 = getShort(buffer);
                         int data2 = getShort(buffer);
                         int data3 = getShort(buffer);
-                        a += (flag << 18) >> 22;
-                        b += ((flag << 8) & 0xFFFFFF | (data1 << 24)) >> 22;
-                        c += ((data1 << 14) & 0x3FFFFFFF | (data2 << 30)) >> 22;
-                        d += data2 << 20 >> 22;
-                        x += ((data2 << 10) & 0x3FFFFFF | (data3 << 26)) >> 22;
-                        y += data3 >> 6;
+                        a += BitUtils.getBitInteger(flag, 4, 10);
+                        b += BitUtils.getBitInteger((data1 << 16) | flag, 14, 10);
+                        c += BitUtils.getBitInteger((data2 << 16) | data1, 8, 10);
+                        d += BitUtils.getBitInteger(data2, 2, 10);
+                        x += BitUtils.getBitInteger((data3 << 16) | data2, 12, 10);
+                        y += BitUtils.getBitInteger(data3, 6, 10);
                         deltaIndex += 4;
                     }
                     case 7 -> {
@@ -140,12 +142,12 @@ public class ScCompressedMatrixBank {
                         int data2 = getShort(buffer);
                         int data3 = getShort(buffer);
                         int data4 = getShort(buffer);
-                        a += flag >> 4;
-                        b += (data1 << 20) >> 20;
-                        c += ((data1 << 8) & 0xFFFFFF | (data2 << 24)) >> 20;
-                        d += ((data2 << 12) & 0xFFFFFFF | (data3 << 28)) >> 20;
-                        x += ((data3 << 14) & 0x3FFFFFFF | (data4 << 30)) >> 18;
-                        y += data4 >> 2;
+                        a += BitUtils.getBitInteger(flag, 4, 12);
+                        b += BitUtils.getBitInteger((data2 << 16) | data1, 0, 12);
+                        c += BitUtils.getBitInteger((data2 << 16) | data1, 12, 12);
+                        d += BitUtils.getBitInteger((data3 << 16) | data2, 8, 12);
+                        x += BitUtils.getBitInteger((data4 << 16) | data3, 4, 14);
+                        y += BitUtils.getBitInteger(data4, 2, 14);
                         deltaIndex += 5;
                     }
                     case 0xF -> {
@@ -159,11 +161,12 @@ public class ScCompressedMatrixBank {
                     }
                     default -> {
                         // nothing, really nothing
+                        throw new IllegalStateException("Unexpected value: " + Integer.toHexString(flag));
                     }
                 }
             } else {
-                x += flag << 23 >> 25;
-                y += flag << 16 >> 25;
+                x += BitUtils.getBitInteger(flag, 2, 7);
+                y += BitUtils.getBitInteger(flag, 9, 7);
                 deltaIndex += 1;
             }
 
