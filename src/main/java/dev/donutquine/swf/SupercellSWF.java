@@ -646,8 +646,8 @@ public class SupercellSWF {
         stream.writeShort(this.movieClips.size());
         stream.writeShort(this.textures.size());
         stream.writeShort(this.textFields.size());
-        stream.writeShort(this.matrixBanks.get(0).getMatrixCount());
-        stream.writeShort(this.matrixBanks.get(0).getColorTransformCount());
+        stream.writeShort(Math.min(this.matrixBanks.get(0).getMatrixCount(), ScMatrixBank.MAX_MATRIX_CAPACITY));
+        stream.writeShort(Math.min(this.matrixBanks.get(0).getColorTransformCount(), ScMatrixBank.MAX_COLOR_CAPACITY));
 
         stream.write(new byte[5]);  // unused
 
@@ -705,12 +705,29 @@ public class SupercellSWF {
         for (int i = 0; i < this.matrixBanks.size(); i++) {
             ScMatrixBank matrixBank = this.matrixBanks.get(i);
 
-            if (i != 0) {
-                objects.add(new ExtraMatrixBankInfo(matrixBank));
+            List<Matrix2x3> matrices = matrixBank.getMatrices();
+            if (matrices.size() > ScMatrixBank.MAX_MATRIX_CAPACITY) {
+                matrices = new ArrayList<>(matrices);
+                List<Matrix2x3> toTruncate = matrices.subList(ScMatrixBank.MAX_MATRIX_CAPACITY, matrices.size());
+                // Note: it is completely fine to truncate 1 matrix from SC2-loaded file with "compressed" matrices
+                LOGGER.warn("Too many matrices for matrix bank {}. Truncated {} matrices.", i, toTruncate.size());
+                toTruncate.clear();
             }
 
-            objects.addAll(matrixBank.getMatrices());
-            objects.addAll(matrixBank.getColorTransforms());
+            List<ColorTransform> colorTransforms = matrixBank.getColorTransforms();
+            if (colorTransforms.size() > ScMatrixBank.MAX_COLOR_CAPACITY) {
+                colorTransforms = new ArrayList<>(colorTransforms);
+                List<ColorTransform> toTruncate = colorTransforms.subList(ScMatrixBank.MAX_COLOR_CAPACITY, colorTransforms.size());
+                LOGGER.warn("Too many colors for matrix bank {}. Truncated {} colors.", i, toTruncate.size());
+                toTruncate.clear();
+            }
+
+            if (i != 0) {
+                objects.add(new ExtraMatrixBankInfo(matrices.size(), colorTransforms.size()));
+            }
+
+            objects.addAll(matrices);
+            objects.addAll(colorTransforms);
         }
 
         objects.addAll(this.textFields);
@@ -760,11 +777,11 @@ public class SupercellSWF {
         return nextId;
     }
 
-    private record ExtraMatrixBankInfo(ScMatrixBank matrixBank) implements Savable {
+    private record ExtraMatrixBankInfo(int matrixCount, int colorTransformCount) implements Savable {
         @Override
         public void save(ByteStream stream) {
-            stream.writeShort(matrixBank.getMatrixCount());
-            stream.writeShort(matrixBank.getColorTransformCount());
+            stream.writeShort(matrixCount);
+            stream.writeShort(colorTransformCount);
         }
 
         @Override

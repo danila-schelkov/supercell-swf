@@ -12,6 +12,6 @@ struct FBMovieClipFrame {
 }
 
 // Removed in SC 6
-// struct FBMovieClipShortFrame {
-//     frame_element_count:int16;
-// }
+struct FBMovieClipShortFrame {
+    frame_element_count:int16;
+}

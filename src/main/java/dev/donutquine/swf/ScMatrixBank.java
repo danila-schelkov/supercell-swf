@@ -5,6 +5,10 @@ import java.util.Collections;
 import java.util.List;
 
 public class ScMatrixBank {
+    // A little obscure name, actually last index
+    public static final int MAX_MATRIX_CAPACITY = 0xFFFF;
+    public static final int MAX_COLOR_CAPACITY = 0xFFFF;
+
     private List<Matrix2x3> matrices;
     private List<ColorTransform> colorTransforms;
 
@@ -17,6 +21,9 @@ public class ScMatrixBank {
     }
 
     public void init(int matrixCount, int colorTransformCount) {
+        assert matrixCount > 0 && matrixCount <= MAX_MATRIX_CAPACITY;
+        assert colorTransformCount > 0 && colorTransformCount <= MAX_COLOR_CAPACITY;
+
         this.matrices = new ArrayList<>(matrixCount);
         for (int i = 0; i < matrixCount; i++) {
             this.matrices.add(new Matrix2x3());
