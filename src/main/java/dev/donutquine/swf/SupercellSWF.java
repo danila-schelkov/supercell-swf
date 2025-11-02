@@ -87,6 +87,13 @@ public class SupercellSWF {
         return false;
     }
 
+    public boolean loadTexture(String filepath, String filename, boolean preferLowres) throws LoadingFaultException, UnableToFindObjectException, UnsupportedCustomPropertyException, TextureFileNotFound {
+        this.filename = filename;
+        this.path = Path.of(filepath);
+
+        return this.loadInternal(filepath, true, preferLowres);
+    }
+
     public void save(String filepath, ProgressTracker tracker) {
         this.saveInternal(filepath, true, !this.useExternalTexture, tracker);
 
