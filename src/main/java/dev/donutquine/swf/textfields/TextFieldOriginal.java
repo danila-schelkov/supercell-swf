@@ -103,10 +103,10 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
         this.fontSize = (byte) stream.readUnsignedChar();
 
         this.bounds = new Rect(
-            stream.readShort(),
-            stream.readShort(),
-            stream.readShort(),
-            stream.readShort()
+            (short) stream.readShort(),
+            (short) stream.readShort(),
+            (short) stream.readShort(),
+            (short) stream.readShort()
         );
 
         this.isOutlineEnabled = stream.readBoolean();
@@ -230,6 +230,70 @@ public class TextFieldOriginal extends DisplayObjectOriginal {
 
     public void setBendAngle(float bendAngle) {
         this.bendAngle = (short) (bendAngle * Short.MAX_VALUE / 360f);
+    }
+
+    public String getFontName() {
+        return fontName;
+    }
+
+    public Rect getBounds() {
+        return bounds;
+    }
+
+    public int getColor() {
+        return color;
+    }
+
+    public int getOutlineColor() {
+        return outlineColor;
+    }
+
+    public String getDefaultText() {
+        return defaultText;
+    }
+
+    public String getAnotherText() {
+        return anotherText;
+    }
+
+    public boolean isUseDeviceFont() {
+        return useDeviceFont;
+    }
+
+    public boolean isOutlineEnabled() {
+        return isOutlineEnabled;
+    }
+
+    public boolean isBold() {
+        return isBold;
+    }
+
+    public boolean isItalic() {
+        return isItalic;
+    }
+
+    public boolean isMultiline() {
+        return isMultiline;
+    }
+
+    public boolean isUnkBoolean() {
+        return unkBoolean;
+    }
+
+    public boolean isAutoAdjustFontSize() {
+        return autoAdjustFontSize;
+    }
+
+    public byte getAlign() {
+        return align;
+    }
+
+    public byte getFontSize() {
+        return fontSize;
+    }
+
+    public int getUnk32() {
+        return unk32;
     }
 
     private Tag determineTag() {
