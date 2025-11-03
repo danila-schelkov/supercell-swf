@@ -34,6 +34,10 @@ public class Rect implements ReadonlyRect {
         loadFromFlatBuffer(fbRect);
     }
 
+    public static Rect createFromSizes(float x, float y, float width, float height) {
+        return new Rect(x, y, x + width, y + height);
+    }
+
     public void loadFromFlatBuffer(FBRect fbRect) {
         this.left = fbRect.left();
         this.top = fbRect.top();
@@ -60,26 +64,26 @@ public class Rect implements ReadonlyRect {
             this.bottom = y;
     }
 
-    public void mergeBounds(Rect rect) {
-        if (this.left > rect.left)
-            this.left = rect.left;
-        if (this.top > rect.top)
-            this.top = rect.top;
-        if (this.right < rect.right)
-            this.right = rect.right;
-        if (this.bottom < rect.bottom)
-            this.bottom = rect.bottom;
+    public void mergeBounds(ReadonlyRect rect) {
+        if (this.left > rect.getLeft())
+            this.left = rect.getLeft();
+        if (this.top > rect.getTop())
+            this.top = rect.getTop();
+        if (this.right < rect.getRight())
+            this.right = rect.getRight();
+        if (this.bottom < rect.getBottom())
+            this.bottom = rect.getBottom();
     }
 
-    public void clamp(Rect clampingRect) {
-        if (this.left < clampingRect.left)
-            this.left = clampingRect.left;
-        if (this.right > clampingRect.right)
-            this.right = clampingRect.right;
-        if (this.top < clampingRect.top)
-            this.top = clampingRect.top;
-        if (this.bottom > clampingRect.bottom)
-            this.bottom = clampingRect.bottom;
+    public void clamp(ReadonlyRect clampingRect) {
+        if (this.left < clampingRect.getLeft())
+            this.left = clampingRect.getLeft();
+        if (this.right > clampingRect.getRight())
+            this.right = clampingRect.getRight();
+        if (this.top < clampingRect.getTop())
+            this.top = clampingRect.getTop();
+        if (this.bottom > clampingRect.getBottom())
+            this.bottom = clampingRect.getBottom();
     }
 
     public boolean containsPoint(float x, float y) {
@@ -122,11 +126,11 @@ public class Rect implements ReadonlyRect {
         return this.bottom;
     }
 
-    public boolean overlaps(Rect other) {
-        return this.left < other.right &&
-            this.top < other.bottom &&
-            this.right > other.left &&
-            this.bottom > other.top;
+    public boolean overlaps(ReadonlyRect other) {
+        return this.left < other.getRight() &&
+            this.top < other.getBottom() &&
+            this.right > other.getLeft() &&
+            this.bottom > other.getTop();
     }
 
     public void scale(float scaleFactor) {
@@ -136,11 +140,11 @@ public class Rect implements ReadonlyRect {
         this.bottom *= scaleFactor;
     }
 
-    public void copyFrom(Rect rect) {
-        this.left = rect.left;
-        this.top = rect.top;
-        this.right = rect.right;
-        this.bottom = rect.bottom;
+    public void copyFrom(ReadonlyRect rect) {
+        this.left = rect.getLeft();
+        this.top = rect.getTop();
+        this.right = rect.getRight();
+        this.bottom = rect.getBottom();
     }
 
     @Override

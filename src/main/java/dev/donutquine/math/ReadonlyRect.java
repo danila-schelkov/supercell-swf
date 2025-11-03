@@ -17,5 +17,5 @@ public interface ReadonlyRect {
 
     float getBottom();
 
-    boolean overlaps(Rect other);
+    boolean overlaps(ReadonlyRect other);
 }
