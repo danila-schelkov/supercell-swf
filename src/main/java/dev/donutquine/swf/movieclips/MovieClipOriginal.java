@@ -59,9 +59,17 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
             throw new IllegalStateException("Movie clip frame must have at least one frame");
         }
 
-        if (fb.frameDataOffset() != -1) {
+        int frameDataOffset = fb.frameDataOffset();
+        // FIXME: needed for compatibility between new and old structure, remove later
+        if (frameDataOffset == -1) {
+            frameDataOffset = fb.frameDataOffset0();
+        }
+
+        // TODO: make an assert for detecting versions with short_frames
+
+        if (frameDataOffset != -1) {
             ExternalMovieClipFrameElementDecoder decoder = new ExternalMovieClipFrameElementDecoder();
-            List<List<MovieClipFrameElement>> frameElements = decoder.decodeMovieClipFrames(frameDataBuffer, fb.frameDataOffset());
+            List<List<MovieClipFrameElement>> frameElements = decoder.decodeMovieClipFrames(frameDataBuffer, frameDataOffset);
             for (int i = 0; i < frames.size(); i++) {
                 frames.get(i).setElements(frameElements.get(i));
             }
