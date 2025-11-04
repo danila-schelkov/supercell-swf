@@ -1,5 +1,6 @@
 package dev.donutquine.swf;
 
+import dev.donutquine.math.Point;
 import dev.donutquine.streams.ByteStream;
 
 import java.util.Objects;
@@ -115,6 +116,17 @@ public class Matrix2x3 implements Savable {
 
     public float applyY(float x, float y) {
         return y * this.d + x * this.b + this.y;
+    }
+
+    public Point apply(Point point) {
+        float x = point.getX();
+        float y = point.getY();
+
+        // Inlined to make JVM feel better (less call stack I hope)
+        return new Point(
+            x * this.a + y * this.c + this.x,
+            y * this.d + x * this.b + this.y
+        );
     }
 
     public void scaleMultiply(float scaleX, float scaleY) {

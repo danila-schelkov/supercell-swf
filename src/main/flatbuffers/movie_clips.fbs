@@ -15,7 +15,11 @@ table FBMovieClip {
     frame_element_offset:int32;
     matrix_bank_index:uint16;
     scaling_grid_index:int32 = -1;
-    short_frames:[FBMovieClipShortFrame] (deprecated);  // removed in SC 6 container version, not supported now
+
+    // short_frames:[FBMovieClipShortFrame] (deprecated);  // removed in SC 6 container version, not supported now
+    // FIXME: replace it with deprecated short_frames from above
+    frame_data_offset0: int32 = -1;  // needed for compatibility between new and old structure
+
     unused:int32 = -1 (deprecated);
     frame_data_offset: int32 = -1;  // added in SC 6
 }

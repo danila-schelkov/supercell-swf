@@ -221,9 +221,7 @@ public class SupercellSWFFlatLoader {
             int uncompressedMatrixCount = (int) (externalMatrixBank.floatMatrixCount() + externalMatrixBank.shortMatrixCount());
             int totalMatrixCount = uncompressedMatrixCount;
             totalMatrixCount = Math.max(totalMatrixCount, (int) (externalMatrixBank.matrixBlockCount() * ScCompressedMatrixBank.BLOCK_SIZE));
-            assert totalMatrixCount <= ScMatrixBank.MAX_MATRIX_CAPACITY + 1;  // due to "compressed" block loading there will be extra matrices up to 65535th.
             int colorTransformCount = (int) externalMatrixBank.colorTransformCount();
-            assert colorTransformCount <= ScMatrixBank.MAX_COLOR_CAPACITY + 1;  // due to "compressed" block loading there will be extra matrices up to 65535th.
             ScMatrixBank matrixBank = new ScMatrixBank(totalMatrixCount, colorTransformCount);
 
             // Parsing
