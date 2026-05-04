@@ -22,8 +22,8 @@ public class ScMatrixBank {
 
     public void init(int matrixCount, int colorTransformCount) {
         // due to "compressed" block loading there will be extra matrices up to 65535th.
-        assert matrixCount > 0 && matrixCount <= MAX_MATRIX_CAPACITY + 1 : "Expected max %d, but got %d".formatted(ScMatrixBank.MAX_MATRIX_CAPACITY + 1, matrixCount);
-        assert colorTransformCount > 0 && colorTransformCount <= MAX_COLOR_CAPACITY + 1 : "Expected max %d, but got %d".formatted(ScMatrixBank.MAX_COLOR_CAPACITY + 1, colorTransformCount);
+        assert matrixCount >= 0 && matrixCount <= MAX_MATRIX_CAPACITY + 1 : "Expected max %d, but got %d".formatted(ScMatrixBank.MAX_MATRIX_CAPACITY + 1, matrixCount);
+        assert colorTransformCount >= 0 && colorTransformCount <= MAX_COLOR_CAPACITY + 1 : "Expected max %d, but got %d".formatted(ScMatrixBank.MAX_COLOR_CAPACITY + 1, colorTransformCount);
 
         this.matrices = new ArrayList<>(matrixCount);
         for (int i = 0; i < matrixCount; i++) {
