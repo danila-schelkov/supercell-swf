@@ -520,7 +520,7 @@ public class SupercellSWF {
                     this.shapes.get(loadedShapes++).load(stream, tagValue, this::getTexture, filename);
                 }
                 case MOVIE_CLIP, MOVIE_CLIP_2, MOVIE_CLIP_3, MOVIE_CLIP_4, MOVIE_CLIP_5,
-                     MOVIE_CLIP_6 -> {
+                     MOVIE_CLIP_6, MOVIE_CLIP_7 -> {
                     if (loadedMovieClips >= this.movieClips.size()) {
                         throw new TooManyObjectsException("Trying to load too many MovieClips from " + filename);
                     }
@@ -535,8 +535,8 @@ public class SupercellSWF {
 
                     this.textFields.get(loadedTextFields++).load(stream, tagValue, this::readFontName);
                 }
-                case MATRIX ->
-                    matrixBank.getMatrix(loadedMatrices++).load(stream, false);
+                case MATRIX, MATRIX_PRECISE ->
+                    matrixBank.getMatrix(loadedMatrices++).load(stream, tagValue == Tag.MATRIX_PRECISE);
                 case COLOR_TRANSFORM ->
                     matrixBank.getColorTransform(loadedColorTransforms++).read(stream);
                 case TAG_TIMELINE_INDEXES -> {
@@ -572,8 +572,6 @@ public class SupercellSWF {
                     highresSuffix = stream.readAscii();
                     lowresSuffix = stream.readAscii();
                 }
-                case MATRIX_PRECISE ->
-                    matrixBank.getMatrix(loadedMatrices++).load(stream, true);
                 case MOVIE_CLIP_MODIFIERS -> {
                     int movieClipModifierCount = stream.readShort();
 
@@ -593,6 +591,10 @@ public class SupercellSWF {
 
                     loadedMatrices = 0;
                     loadedColorTransforms = 0;
+                }
+                case SOME_TEXTURE_INFO -> {
+                    int _unk48_1 = stream.readInt(); // only first byte is used
+                    int _unk48_2 = stream.readInt();
                 }
                 default -> {
                     // TODO: add strict mode which crashes on errors and probably enable it by default

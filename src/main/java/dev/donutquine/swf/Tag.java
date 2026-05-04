@@ -89,11 +89,19 @@ public enum Tag {
      * Contains a filename of the compressed with zstd texture "zktx"
      */
     TEXTURE_FILE_REFERENCE,
-    UNKNOWN_48,  // probably, custom properties for movie clips
+    SOME_TEXTURE_INFO,  // probably, custom properties for movie clips
     /**
      * Has custom properties
      */
     MOVIE_CLIP_6,
+    /**
+     * Has custom properties, extended (enlarged) frame elements
+     */
+    MOVIE_CLIP_7,
+    /**
+     * Similar to EXTRA_MATRIX_BANK
+     */
+    MOVIE_CLIP_INLINE_MATRIX_BANK, // 51
     ;
 
     public boolean isTexture() {
@@ -143,11 +151,11 @@ public enum Tag {
     }
 
     public boolean hasBlendData() {
-        return this == MOVIE_CLIP_3 || this == MOVIE_CLIP_5 || this == MOVIE_CLIP_6;
+        return this == MOVIE_CLIP_3 || this == MOVIE_CLIP_5 || this == MOVIE_CLIP_6 || this == MOVIE_CLIP_7;
     }
 
     public boolean hasCustomProperties() {
-        return this == MOVIE_CLIP_6;
+        return this == MOVIE_CLIP_6 || this == MOVIE_CLIP_7;
     }
 
     public int getTextureFilter() {

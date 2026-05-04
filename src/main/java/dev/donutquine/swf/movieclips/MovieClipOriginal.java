@@ -31,6 +31,7 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
     private List<MovieClipChild> children;
     private List<MovieClipFrame> frames;
     private int matrixBankIndex;
+    private ScMatrixBank inlineMatrixBank;
     private Rect scalingGrid;
 
     private DisplayObjectOriginal[] timelineChildren;
@@ -127,6 +128,7 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         }
 
         short[] frameElements = null;
+        List<MovieClipFrameElement> newElements = null;
         switch (Objects.requireNonNull(tag)) {
             case MOVIE_CLIP -> {
             }  // TAG_MOVIE_CLIP no longer supported
@@ -135,6 +137,16 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
                     throw new UnsupportedTagException("TAG_MOVIE_CLIP_4 no longer supported\n");
                 } catch (UnsupportedTagException exception) {
                     LOGGER.error(exception.getMessage(), exception);
+                }
+            }
+            case MOVIE_CLIP_7 -> {
+                int elementCount = stream.readInt();
+                newElements = new ArrayList<>(elementCount);
+                for (int i = 0; i < elementCount; i++) {
+                    int childIndex = stream.readShort() & 0xFFFF;
+                    int matrixIndex = stream.readInt();
+                    int colorIndex = stream.readInt();
+                    newElements.add(new MovieClipFrameElement(childIndex, matrixIndex, colorIndex));
                 }
             }
             default -> {
@@ -164,6 +176,8 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         }
 
         int loadedCommands = 0;
+        int loadedMatrices = 0;
+        int loadedColorTransforms = 0;
         int usedElements = 0;
 
         while (true) {
@@ -189,14 +203,40 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
                             throw new IllegalStateException("Frame elements cannot be null.");
                         }
 
-                        List<MovieClipFrameElement> elements = new ArrayList<>(elementCount);
-                        for (int i = 0; i < elementCount; i++) {
-                            elements.add(new MovieClipFrameElement(frameElements[usedElements * 3] & 0xFFFF, frameElements[usedElements * 3 + 1] & 0xFFFF, frameElements[usedElements * 3 + 2] & 0xFFFF));
+                        List<MovieClipFrameElement> elements;
+                        if (newElements != null) {
+                            elements = newElements.subList(usedElements, usedElements + elementCount);
+                            usedElements += elementCount;
+                        } else {
+                            elements = new ArrayList<>(elementCount);
+                            for (int i = 0; i < elementCount; i++) {
+                                int childIndex = frameElements[usedElements * 3] & 0xFFFF;
+                                int matrixIndex = frameElements[usedElements * 3 + 1] & 0xFFFF;
+                                int colorTransformIndex = frameElements[usedElements * 3 + 2] & 0xFFFF;
 
-                            usedElements++;
+                                elements.add(new MovieClipFrameElement(childIndex, matrixIndex, colorTransformIndex));
+
+                                usedElements++;
+                            }
                         }
+
                         frame.setElements(elements);
                     }
+                }
+                case MATRIX, MATRIX_PRECISE -> {
+                    if (this.inlineMatrixBank == null) {
+                        throw new IllegalStateException(String.format("Matrix tag %d outside inline bank in MovieClip", tagValue));  // , filename
+                    }
+
+                    this.inlineMatrixBank.getMatrix(loadedMatrices++).load(stream, tagValue == Tag.MATRIX_PRECISE);
+                }
+                case COLOR_TRANSFORM -> {
+                    if (this.inlineMatrixBank == null) {
+                        throw new IllegalStateException(String.format("ColorTransform tag %d outside inline bank in MovieClip", tagValue));  // , filename
+                    }
+
+
+                    this.inlineMatrixBank.getColorTransform(loadedColorTransforms++).read(stream);
                 }
                 case SCALING_GRID -> {
                     if (this.scalingGrid != null) {
@@ -214,6 +254,15 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
                 }
                 case MATRIX_BANK_INDEX -> // (a1 + 54) & 0x80FF | ((ZN12SupercellSWF16readUnsignedCharEv(a2) & 0x7F) << 8);
                     this.matrixBankIndex = stream.readUnsignedChar();
+                case MOVIE_CLIP_INLINE_MATRIX_BANK -> {
+                    int matrixCount = stream.readShort();
+                    int colorTransformCount = stream.readShort();
+
+                    this.inlineMatrixBank = new ScMatrixBank(matrixCount, colorTransformCount);
+                    
+                    loadedMatrices = 0;
+                    loadedColorTransforms = 0;
+                }
                 default -> {
                     try {
                         throw new UnsupportedTagException(String.format("Unknown tag %d in MovieClip, %s", frameTag, filename));
@@ -242,11 +291,17 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
             }
         }
 
-        if (tag != Tag.MOVIE_CLIP && tag != Tag.MOVIE_CLIP_4) {
-            List<MovieClipFrameElement> frameElements = new ArrayList<>();
-            for (MovieClipFrame frame : this.frames) {
-                frameElements.addAll(frame.getElements());
+        if (tag == Tag.MOVIE_CLIP_7) {
+            List<MovieClipFrameElement> frameElements = collectFrameElements();
+
+            stream.writeInt(frameElements.size());
+            for (MovieClipFrameElement element : frameElements) {
+                stream.writeShort(element.childIndex());
+                stream.writeInt(element.matrixIndex());
+                stream.writeInt(element.colorTransformIndex());
             }
+        } else if (tag != Tag.MOVIE_CLIP && tag != Tag.MOVIE_CLIP_4) {
+            List<MovieClipFrameElement> frameElements = collectFrameElements();
 
             stream.writeInt(frameElements.size());
             for (MovieClipFrameElement element : frameElements) {
@@ -346,6 +401,20 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
     }
 
     private Tag determineTag() {
+        if (this.inlineMatrixBank != null) {
+            return Tag.MOVIE_CLIP_7;
+        }
+
+        // Note: check if frame elements in a new format (-1 instead of 0xFFFF for null index)
+        for (MovieClipFrame frame : this.frames) {
+            for (MovieClipFrameElement frameElement : frame.getElements()) {
+                if (frameElement.matrixIndex() == -1 || frameElement.matrixIndex() > 0xFFFF || 
+                    frameElement.colorTransformIndex() == -1 || frameElement.colorTransformIndex() > 0xFFFF) {
+                    return Tag.MOVIE_CLIP_7;
+                }
+            }
+        }
+
         if (!customPropertyBoolean) {
             return Tag.MOVIE_CLIP_6;
         }
@@ -367,18 +436,50 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         return Tag.MOVIE_CLIP_2;
     }
 
+    private List<MovieClipFrameElement> collectFrameElements() {
+        List<MovieClipFrameElement> frameElements = new ArrayList<>();
+        for (MovieClipFrame frame : this.frames) {
+            frameElements.addAll(frame.getElements());
+        }
+
+        return frameElements;
+    }
+
     private List<Savable> getSavableObjects() {
-        List<Savable> savableObjects = new ArrayList<>(this.frames);
+        List<Savable> objects = new ArrayList<>(this.frames);
 
         if (this.scalingGrid != null) {
-            savableObjects.add(new ScalingGridObject(scalingGrid));
+            objects.add(new ScalingGridObject(scalingGrid));
         }
 
         if (this.matrixBankIndex != 0) {
-            savableObjects.add(new MatrixBankIndexObject(matrixBankIndex));
+            objects.add(new MatrixBankIndexObject(matrixBankIndex));
         }
 
-        return savableObjects;
+        if (this.inlineMatrixBank != null) {
+            List<Matrix2x3> matrices = this.inlineMatrixBank.getMatrices();
+            if (matrices.size() > ScMatrixBank.MAX_MATRIX_CAPACITY) {
+                matrices = new ArrayList<>(matrices);
+                List<Matrix2x3> toTruncate = matrices.subList(ScMatrixBank.MAX_MATRIX_CAPACITY, matrices.size());
+                // Note: it is completely fine to truncate 1 matrix from SC2-loaded file with "compressed" matrices
+                LOGGER.warn("Too many matrices for inline matrix bank. Truncated {} matrices.", toTruncate.size());
+                toTruncate.clear();
+            }
+
+            List<ColorTransform> colorTransforms = this.inlineMatrixBank.getColorTransforms();
+            if (colorTransforms.size() > ScMatrixBank.MAX_COLOR_CAPACITY) {
+                colorTransforms = new ArrayList<>(colorTransforms);
+                List<ColorTransform> toTruncate = colorTransforms.subList(ScMatrixBank.MAX_COLOR_CAPACITY, colorTransforms.size());
+                LOGGER.warn("Too many colors for inline matrix bank. Truncated {} colors.", toTruncate.size());
+                toTruncate.clear();
+            }
+
+            objects.add(new InlineMatrixBankInfo(matrices.size(), colorTransforms.size()));
+            objects.addAll(matrices);
+            objects.addAll(colorTransforms);
+        }
+
+        return objects;
     }
 
     private static void validateMatrixBankIndex(int matrixBankIndex) {
@@ -479,6 +580,19 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
 
         public MovieClipOriginal build() {
             return new MovieClipOriginal(children, frames, fps, matrixBankIndex, scalingGrid, customPropertyBoolean);
+        }
+    }
+
+    private record InlineMatrixBankInfo(int matrixCount, int colorTransformCount) implements Savable {
+        @Override
+        public void save(ByteStream stream) {
+            stream.writeShort(matrixCount);
+            stream.writeShort(colorTransformCount);
+        }
+
+        @Override
+        public Tag getTag() {
+            return Tag.MOVIE_CLIP_INLINE_MATRIX_BANK;
         }
     }
 }
