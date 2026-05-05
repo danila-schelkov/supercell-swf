@@ -10,6 +10,9 @@ public enum Tag {
      * It isn't supported since SC2 appeared.
      */
     SHAPE,
+    /**
+     * no longer supported
+     */
     MOVIE_CLIP,
     /**
      * This command contains quad points. Only 4 points allowed. <br>
@@ -26,6 +29,9 @@ public enum Tag {
     MOVIE_CLIP_FRAME_2,
     MOVIE_CLIP_3,
     TAG_TIMELINE_INDEXES,
+    /**
+     * no longer supported
+     */
     MOVIE_CLIP_4,
     TEXT_FIELD_2,
     TEXTURE_2,  // TEXTURE with mipmaps

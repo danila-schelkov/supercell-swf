@@ -401,10 +401,6 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
     }
 
     private Tag determineTag() {
-        if (this.inlineMatrixBank != null) {
-            return Tag.MOVIE_CLIP_7;
-        }
-
         // Note: check if frame elements in a new format (-1 instead of 0xFFFF for null index)
         for (MovieClipFrame frame : this.frames) {
             for (MovieClipFrameElement frameElement : frame.getElements()) {
