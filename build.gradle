@@ -36,6 +36,10 @@ flatbuffers {
     language = 'java'
 }
 
+tasks.withType(JavaCompile) {
+    options.release = 17
+}
+
 tasks.register('createFlatBuffers', FlatBuffers) {
     inputDir = file("src/main/flatbuffers")
     outputDir = file("src/generated/flatbuffers")
