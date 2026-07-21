@@ -41,6 +41,16 @@ public class ColorTransform implements Savable {
         this.blueMultiplier = colorTransform.blueMultiplier;
     }
 
+    public void set(ColorTransform colorTransform) {
+        this.redAddition = colorTransform.redAddition;
+        this.greenAddition = colorTransform.greenAddition;
+        this.blueAddition = colorTransform.blueAddition;
+        this.alpha = colorTransform.alpha;
+        this.redMultiplier = colorTransform.redMultiplier;
+        this.greenMultiplier = colorTransform.greenMultiplier;
+        this.blueMultiplier = colorTransform.blueMultiplier;
+    }
+
     public void set(int r, int g, int b, int a, int ra, int ga, int ba) {
         this.redMultiplier = r;
         this.greenMultiplier = g;

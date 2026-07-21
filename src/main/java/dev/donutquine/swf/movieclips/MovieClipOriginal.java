@@ -380,7 +380,23 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
     }
 
     public void setMatrixBankIndex(short matrixBankIndex) {
+        if (this.inlineMatrixBank != null) {
+            throw new IllegalStateException("You cannot set matrix bank index until you have an inlined matrix bank");
+        }
+
         this.matrixBankIndex = matrixBankIndex;
+    }
+
+    public ScMatrixBank getInlineMatrixBank() {
+        return inlineMatrixBank;
+    }
+
+    public void setInlineMatrixBank(ScMatrixBank inlineMatrixBank) {
+        if (this.matrixBankIndex != 0) {
+            throw new IllegalStateException("You cannot set inline matrix bank until you have non-zero matrix bank index");
+        }
+
+        this.inlineMatrixBank = inlineMatrixBank;
     }
 
     public DisplayObjectOriginal[] getTimelineChildren() {
@@ -404,8 +420,8 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         // Note: check if frame elements in a new format (-1 instead of 0xFFFF for null index)
         for (MovieClipFrame frame : this.frames) {
             for (MovieClipFrameElement frameElement : frame.getElements()) {
-                if (frameElement.matrixIndex() == -1 || frameElement.matrixIndex() > 0xFFFF || 
-                    frameElement.colorTransformIndex() == -1 || frameElement.colorTransformIndex() > 0xFFFF) {
+                if (frameElement.matrixIndex() == -1 || frameElement.matrixIndex() > ScMatrixBank.MAX_MATRIX_CAPACITY || 
+                    frameElement.colorTransformIndex() == -1 || frameElement.colorTransformIndex() > ScMatrixBank.MAX_COLOR_CAPACITY) {
                     return Tag.MOVIE_CLIP_7;
                 }
             }
@@ -448,10 +464,6 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
             objects.add(new ScalingGridObject(scalingGrid));
         }
 
-        if (this.matrixBankIndex != 0) {
-            objects.add(new MatrixBankIndexObject(matrixBankIndex));
-        }
-
         if (this.inlineMatrixBank != null) {
             List<Matrix2x3> matrices = this.inlineMatrixBank.getMatrices();
             if (matrices.size() > ScMatrixBank.MAX_MATRIX_CAPACITY) {
@@ -473,6 +485,8 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
             objects.add(new InlineMatrixBankInfo(matrices.size(), colorTransforms.size()));
             objects.addAll(matrices);
             objects.addAll(colorTransforms);
+        } else if (this.matrixBankIndex != 0) {
+            objects.add(new MatrixBankIndexObject(matrixBankIndex));
         }
 
         return objects;

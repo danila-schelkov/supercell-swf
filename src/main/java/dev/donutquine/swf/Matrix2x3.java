@@ -48,6 +48,15 @@ public class Matrix2x3 implements Savable {
         this.y = matrix.y;
     }
 
+    public void set(Matrix2x3 matrix) {
+        this.a = matrix.a;
+        this.b = matrix.b;
+        this.c = matrix.c;
+        this.d = matrix.d;
+        this.x = matrix.x;
+        this.y = matrix.y;
+    }
+
     public void set(float a, float b, float c, float d, float x, float y) {
         this.a = a;
         this.b = b;
