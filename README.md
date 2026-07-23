@@ -18,3 +18,7 @@ sonatype.password=SONATYPE_PASSWORD
 signing.key=-----BEGIN PGP PRIVATE KEY BLOCK-----  -----END PGP PRIVATE KEY BLOCK-----\n
 signing.password=KEY_PASSWORD
 ```
+
+### License
+
+This project is licensed under MIT license ([LICENSE](LICENSE) or https://opensource.org/licenses/MIT).
