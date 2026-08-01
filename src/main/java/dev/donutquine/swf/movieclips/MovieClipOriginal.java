@@ -3,6 +3,7 @@ package dev.donutquine.swf.movieclips;
 import com.supercell.swf.FBMovieClip;
 import com.supercell.swf.FBMovieClipFrame;
 import com.supercell.swf.FBResources;
+import com.supercell.swf.FBRect;
 import dev.donutquine.math.MathHelper;
 import dev.donutquine.math.Rect;
 import dev.donutquine.streams.ByteStream;
@@ -79,7 +80,8 @@ public class MovieClipOriginal extends DisplayObjectOriginal {
         matrixBankIndex = fb.matrixBankIndex();
         int scalingGridIndex = fb.scalingGridIndex();
         if (scalingGridIndex != -1) {
-            scalingGrid = new Rect(resources.scalingGrids(scalingGridIndex));
+            FBRect fbScalingGrid = resources.scalingGrids(scalingGridIndex);
+            scalingGrid = new Rect(fbScalingGrid.left(), fbScalingGrid.top(), fbScalingGrid.right(), fbScalingGrid.bottom());
         }
 
         tag = determineTag();

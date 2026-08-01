@@ -1,7 +1,5 @@
 package dev.donutquine.math;
 
-import com.supercell.swf.FBRect;
-
 public class Rect implements ReadonlyRect {
     private float left;
     private float top;
@@ -30,19 +28,8 @@ public class Rect implements ReadonlyRect {
         this.bottom = bottom;
     }
 
-    public Rect(FBRect fbRect) {
-        loadFromFlatBuffer(fbRect);
-    }
-
     public static Rect createFromSizes(float x, float y, float width, float height) {
         return new Rect(x, y, x + width, y + height);
-    }
-
-    public void loadFromFlatBuffer(FBRect fbRect) {
-        this.left = fbRect.left();
-        this.top = fbRect.top();
-        this.right = fbRect.right();
-        this.bottom = fbRect.bottom();
     }
 
     public void movePosition(float x, float y) {
@@ -64,6 +51,17 @@ public class Rect implements ReadonlyRect {
             this.bottom = y;
     }
 
+    public void mergeBounds(float left, float top, float right, float bottom) {
+        if (this.left > left)
+            this.left = left;
+        if (this.top > top)
+            this.top = top;
+        if (this.right < right)
+            this.right = right;
+        if (this.bottom < bottom)
+            this.bottom = bottom;
+    }
+
     public void mergeBounds(ReadonlyRect rect) {
         if (this.left > rect.getLeft())
             this.left = rect.getLeft();
@@ -73,6 +71,17 @@ public class Rect implements ReadonlyRect {
             this.right = rect.getRight();
         if (this.bottom < rect.getBottom())
             this.bottom = rect.getBottom();
+    }
+
+    public void clamp(float left, float top, float right, float bottom) {
+        if (this.left < left)
+            this.left = left;
+        if (this.right > right)
+            this.right = right;
+        if (this.top < top)
+            this.top = top;
+        if (this.bottom > bottom)
+            this.bottom = bottom;
     }
 
     public void clamp(ReadonlyRect clampingRect) {
@@ -86,46 +95,61 @@ public class Rect implements ReadonlyRect {
             this.bottom = clampingRect.getBottom();
     }
 
+    @Override
     public boolean containsPoint(float x, float y) {
         return x >= this.left && x <= this.right && y >= this.top && y <= this.bottom;
     }
 
+    @Override
     public float getWidth() {
         return this.right - this.left;
     }
 
+    @Override
     public float getHeight() {
         return this.bottom - this.top;
     }
 
+    @Override
     public float getMidX() {
         return this.left + this.getWidth() / 2f;
     }
 
+    @Override
     public float getMidY() {
         return this.top + this.getHeight() / 2f;
     }
 
     // getMinX
+    @Override
     public float getLeft() {
         return this.left;
     }
 
     // getMinY
+    @Override
     public float getTop() {
         return this.top;
     }
 
     // getMaxX
+    @Override
     public float getRight() {
         return this.right;
     }
 
     // getMaxY
+    @Override
     public float getBottom() {
         return this.bottom;
     }
 
+    @Override
+    public boolean overlaps(float left, float top, float right, float bottom) {
+        return this.left < right && this.top < bottom && this.right > left && this.bottom > top;
+    }
+
+    @Override
     public boolean overlaps(ReadonlyRect other) {
         return this.left < other.getRight() &&
             this.top < other.getBottom() &&
@@ -138,6 +162,13 @@ public class Rect implements ReadonlyRect {
         this.right *= scaleFactor;
         this.top *= scaleFactor;
         this.bottom *= scaleFactor;
+    }
+
+    public void set(float left, float top, float right, float bottom) {
+        this.left = left;
+        this.top = top;
+        this.right = right;
+        this.bottom = bottom;
     }
 
     public void copyFrom(ReadonlyRect rect) {
@@ -165,3 +196,4 @@ public class Rect implements ReadonlyRect {
             '}';
     }
 }
+

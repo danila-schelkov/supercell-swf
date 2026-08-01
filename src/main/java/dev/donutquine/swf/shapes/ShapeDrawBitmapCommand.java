@@ -17,6 +17,8 @@ import java.util.List;
 public class ShapeDrawBitmapCommand implements Savable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ShapeDrawBitmapCommand.class);
 
+    public static final int MAX_VERTEX_COUNT = 0xFF;
+
     private Tag tag;
 
     private int textureIndex;
@@ -44,7 +46,7 @@ public class ShapeDrawBitmapCommand implements Savable {
             throw new IllegalArgumentException("Shape draw command must have at least 3 points!");
         }
 
-        if (points.size() > 255) {
+        if (points.size() > MAX_VERTEX_COUNT) {
             // NOTE: make flatbuffer saving and enforce user to use it for more points
             throw new IllegalArgumentException("Too many points: " + (points.size()));
         }
@@ -253,7 +255,7 @@ public class ShapeDrawBitmapCommand implements Savable {
         }
 
         public Builder addPoint(ShapePoint point) {
-            if (points.size() >= 255) {
+            if (points.size() >= MAX_VERTEX_COUNT) {
                 // NOTE: make flatbuffer saving and enforce user to use it for more points
                 throw new IllegalArgumentException("Too many points: " + (points.size()));
             }

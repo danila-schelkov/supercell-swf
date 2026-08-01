@@ -17,5 +17,8 @@ public interface ReadonlyRect {
 
     float getBottom();
 
+    boolean containsPoint(float x, float y);
+
+    boolean overlaps(float left, float top, float right, float bottom);
     boolean overlaps(ReadonlyRect other);
 }
