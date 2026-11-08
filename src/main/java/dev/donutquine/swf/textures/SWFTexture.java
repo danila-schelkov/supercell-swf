@@ -46,13 +46,21 @@ public class SWFTexture implements Savable {
         this.width = fb.width();
         this.height = fb.height();
 
-        if (fb.dataLength() != 0) {
-            byte[] data = new byte[fb.dataLength()];
-            for (int i = 0; i < data.length; i++) {
-                data[i] = fb.data(i);
-            }
+        int flags = fb.flags();
 
-            this.ktxData = data;
+        if (fb.dataLength() != 0) {
+            ByteBuffer dataBuffer = fb.dataAsByteBuffer();
+            assert dataBuffer.remaining() == fb.dataLength();
+
+            byte[] data = new byte[fb.dataLength()];
+            dataBuffer.get(data);
+
+            if ((flags & 8) != 0) {
+                this.ktxData = data;
+            } else {
+                // NOTE: we cannot use dataBuffer itself as it is read-only
+                this.pixels = BufferUtils.wrapDirect(data);
+            }
         } else {
             this.textureFilename = fb.textureFile();
         }
@@ -101,7 +109,8 @@ public class SWFTexture implements Savable {
         width = stream.readShort();
         height = stream.readShort();
 
-        if (!hasTexture) return;
+        if (!hasTexture)
+            return;
 
         // TODO: add callbacks for renderer?
         if (tag == Tag.KHRONOS_TEXTURE) {
@@ -110,17 +119,19 @@ public class SWFTexture implements Savable {
             pixels = loadTexture(stream, width, height, type.pixelBytes, tag.hasInterlacing());
         }
 
-        // Note: it seems TEXTURE_3 contains mip map data along with deprecated (?) TEXTURE_2, TEXTURE_7
+        // Note: it seems TEXTURE_3 contains mip map data along with deprecated (?)
+        // TEXTURE_2, TEXTURE_7
         // TODO: check
         // if (tag == Tag.TEXTURE_3) {
-        //     int level = 1;
+        // int level = 1;
         //
-        //     int levelWidth, levelHeight;
-        //     do {
-        //         levelWidth = Math.max(1, width >> level);
-        //         levelHeight = Math.max(1, height >> level);
-        //         mipMaps[level] = loadTexture(stream, width, height, textureInfo.pixelBytes(), tag.hasInterlacing());
-        //     } while (levelWidth > 1 || levelHeight > 1);
+        // int levelWidth, levelHeight;
+        // do {
+        // levelWidth = Math.max(1, width >> level);
+        // levelHeight = Math.max(1, height >> level);
+        // mipMaps[level] = loadTexture(stream, width, height, textureInfo.pixelBytes(),
+        // tag.hasInterlacing());
+        // } while (levelWidth > 1 || levelHeight > 1);
         // }
     }
 
@@ -142,7 +153,8 @@ public class SWFTexture implements Savable {
         stream.writeShort(width);
         stream.writeShort(height);
 
-        if (!hasTexture) return;
+        if (!hasTexture)
+            return;
 
         if (tag == Tag.KHRONOS_TEXTURE) {
             stream.write(ktxData);
@@ -223,7 +235,9 @@ public class SWFTexture implements Savable {
 
     @Override
     public String toString() {
-        return "SWFTexture{" + "tag=" + tag + ", type=" + type + ", width=" + width + ", height=" + height + ", ktxData=" + Arrays.toString(ktxData) + ", textureFilename='" + textureFilename + '\'' + ", pixels=" + pixels + ", index=" + index + '}';
+        return "SWFTexture{" + "tag=" + tag + ", type=" + type + ", width=" + width + ", height=" + height
+                + ", ktxData=" + Arrays.toString(ktxData) + ", textureFilename='" + textureFilename + '\'' + ", pixels="
+                + pixels + ", index=" + index + '}';
     }
 
     private Buffer loadTexture(ByteStream stream, int width, int height, int pixelBytes, boolean hasInterlacing) {
@@ -369,6 +383,11 @@ public class SWFTexture implements Savable {
             return Tag.TEXTURE_FILE_REFERENCE;
         }
 
+        if (this.pixels != null) {
+            // TODO: check
+            return Tag.TEXTURE;
+        }
+
         throw new IllegalStateException("This type of texture is not supported yet.");
     }
 
@@ -439,7 +458,8 @@ public class SWFTexture implements Savable {
 
         int bytesExpected = width * height * type.pixelBytes;
         if (bytesExpected != BufferUtils.getByteCapacity(pixelBuffer)) {
-            throw new IllegalArgumentException("Expected " + bytesExpected + " bytes but got " + pixelBuffer.capacity());
+            throw new IllegalArgumentException(
+                    "Expected " + bytesExpected + " bytes but got " + pixelBuffer.capacity());
         }
     }
 
